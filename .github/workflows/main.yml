@@ -1,4 +1,4 @@
-# Basically, on PR open/update, download all files from release in a certain repo, then put them in the release as pre-release.
+# Basically, on PR open/update, download all files from release in a certain repo, then put them in the release as draft.
 # Still need to number the version manually.
 name: "Create release build for Cinema4D-Plugin"
 on:
@@ -20,8 +20,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-mac:
-    runs-on: macos-latest
+  build-c4d-ls:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout This Repo
         uses: actions/checkout@v3
@@ -31,17 +31,18 @@ jobs:
         with:
           repo: 'UNOMi-Solutions/Cinema4D-Plugin'
           regex: true
-          file: ".*-release.zip"
+          file: ".*"
+          target: "./release/"
           token: ${{ secrets.OBI_AC_PAT_ORG }}
-
-      - name: Unzip Files into release dir
-        run: unzip "*-release.zip" -d release
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: C4D-LS-1.*
-          prerelease: true
+          # It's a draft, so we can modify it first before submission
+          name: c4d-ls-1.0.x
+          tag_name: c4d-ls
+          draft: true
           files: |
             release/*
+          token: ${{ secrets.OBI_AC_PAT_ORG }}
           
