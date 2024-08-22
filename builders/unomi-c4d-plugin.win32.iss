@@ -23,6 +23,8 @@ CreateAppDir=yes
 ; Prevent changing dir
 DisableDirPage=yes
 DisableProgramGroupPage=yes
+UsePreviousAppDir=no
+; no = allow using other dir if's previously installed
 
 ; Set the dir using dropdown
 DefaultDirName={code:GetDirName}\{#MyAppDir}
@@ -52,7 +54,7 @@ var
   DirName: string;
   Button: TNewButton;
   ComboBox: TNewComboBox;
-  CustomPage: TWizardPage;
+  CustomPage: TInputDirWizardPage;
   DirTextBox: TNewEdit;
   dir_2026: string;
   dir_2025: string;
@@ -71,6 +73,7 @@ const
 
 function GetDirName(Param: string): string;
 begin
+  // This is only called after InitializeSetup, not called again on dropdown change
   Result := DirName;
 end;
 
@@ -110,6 +113,13 @@ begin
   end;
 end;
 
+procedure SetInstallDir(Dir: string);
+begin
+  // {code.DirName} only gets called on setup, so modify the directory using WizardForm
+  WizardForm.DirEdit.Text := Dir + '\{#MyAppDir}';
+  DirTextBox.Text := WizardForm.DirEdit.Text;
+end;
+
 procedure ComboBoxChange(Sender: TObject);
 begin
   case ComboBox.Text of
@@ -121,7 +131,7 @@ begin
     text_r25: DirName := dir_r25;
   end;
   Log(Format('Selected index: %s %s', [ComboBox.Text, DirName]));
-  DirTextBox.Text := DirName;
+  SetInstallDir(DirName);
 end;
 
 // Being called before the installation starts
@@ -159,7 +169,7 @@ var
   DescLabel: TLabel;
 begin
   // Create a custom page to select the Cinema 4D version
-  CustomPage := CreateCustomPage(wpSelectDir, 'Settings', 'Cinema 4D Version');
+  CustomPage := CreateInputDirPage(wpSelectDir, 'Settings', 'Cinema 4D Version', '', False, '');
 
   DescLabel := TLabel.Create(WizardForm);
   DescLabel.Parent := CustomPage.Surface;
@@ -188,6 +198,6 @@ begin
   DirTextBox.Left := 0;
   DirTextBox.Top := ComboBox.Top + ComboBox.Height + 6;
   DirTextBox.Width := 600;
-  DirTextBox.Text := DirName;
+  DirTextBox.Text := WizardForm.DirEdit.Text;
   DirTextBox.Enabled := False;
 end;
