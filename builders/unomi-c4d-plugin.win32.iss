@@ -25,7 +25,7 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 
 ; TODO - Find the dir using dropdown
-DefaultDirName={userappdata}\Maxon\Maxon Cinema 4D 2024_0CCAE811\plugins\{#MyAppDir}
+DefaultDirName={code:GetDirName}\{#MyAppDir}
 DefaultGroupName={#MyGroupName}
 LicenseFile=..\support\LICENSE.txt
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
@@ -44,3 +44,74 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Source: "..\dist-c4d\{#MyAppDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
+
+[Code]
+
+var
+  DirName: string;
+
+function GetDirName(Param: string): string;
+begin
+  Result := DirName;
+end;
+
+function TryPath(Path: string): Boolean;
+var
+  FindRec: TFindRec;
+  BasePath, SearchPattern, FullPath: string;
+begin
+  Result := False;
+  BasePath := ExtractFilePath(Path);
+  SearchPattern := ExtractFileName(Path);
+
+  if FindFirst(BasePath + SearchPattern, FindRec) then
+  begin
+    repeat
+      if (FindRec.Name <> '.') and (FindRec.Name <> '..') then
+      begin
+        // Once found, check if the plugins dir exists
+        FullPath := BasePath + FindRec.Name + '\plugins';
+        if DirExists(FullPath) then
+        begin
+          Log(Format('Path %s exists', [FullPath]));
+          DirName := FullPath;
+          Result := True;
+          Break;
+        end;
+      end;
+    until not FindNext(FindRec);
+    FindClose(FindRec);
+  end;
+  
+  if not Result then
+  begin
+    Log(Format('Path %s does not exist', [Path]));
+  end;
+end;
+
+// Being called before the installation starts
+function InitializeSetup(): Boolean;
+var
+  PluginDir: string;
+begin
+  // Find path, with the latest version taking priority
+  PluginDir := ExpandConstant('{userappdata}\Maxon\Maxon Cinema 4D ');
+  Result :=
+    TryPath(PluginDir + '2026_*') or
+    TryPath(PluginDir + '2025_*') or
+    TryPath(PluginDir + '2024_*') or
+    TryPath(PluginDir + '2023_*') or
+    TryPath(PluginDir + 'S26_*') or
+    TryPath(PluginDir + 'R25_*'); // 2021
+  // In Pascal, `or` is short-circuiting, so it stops at the first true
+    
+  // If multiple, last match is stored
+  if Result then
+  begin
+    Log(Format('Destination %s selected', [DirName]));
+  end
+  else
+  begin
+    MsgBox('No supported Cinema 4D found, aborting installation', mbError, MB_OK);
+  end;
+end;
