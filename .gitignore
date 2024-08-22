@@ -1,2 +1,6 @@
 
 *.exe
+
+dist-c4d/
+
+dist-maya/
