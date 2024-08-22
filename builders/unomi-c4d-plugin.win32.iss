@@ -24,7 +24,7 @@ CreateAppDir=yes
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 
-; TODO - Find the dir using dropdown
+; Set the dir using dropdown
 DefaultDirName={code:GetDirName}\{#MyAppDir}
 DefaultGroupName={#MyGroupName}
 LicenseFile=..\support\LICENSE.txt
@@ -48,19 +48,38 @@ Source: "..\dist-c4d\{#MyAppDir}\*"; DestDir: "{app}"; Flags: ignoreversion recu
 [Code]
 
 var
+  FoundMulti: Boolean;
   DirName: string;
+  Button: TNewButton;
+  ComboBox: TNewComboBox;
+  CustomPage: TWizardPage;
+  DirTextBox: TNewEdit;
+  dir_2026: string;
+  dir_2025: string;
+  dir_2024: string;
+  dir_2023: string;
+  dir_s26: string;
+  dir_r25: string;
+
+const
+  text_2026 = 'Cinema 4D 2026';
+  text_2025 = 'Cinema 4D 2025';
+  text_2024 = 'Cinema 4D 2024';
+  text_2023 = 'Cinema 4D 2023';
+  text_s26 = 'Cinema 4D S26';
+  text_r25 = 'Cinema 4D R25';
 
 function GetDirName(Param: string): string;
 begin
   Result := DirName;
 end;
 
-function TryPath(Path: string): Boolean;
+function TryPath(Path: string): string;
 var
   FindRec: TFindRec;
   BasePath, SearchPattern, FullPath: string;
 begin
-  Result := False;
+  Result := '';
   BasePath := ExtractFilePath(Path);
   SearchPattern := ExtractFileName(Path);
 
@@ -74,8 +93,10 @@ begin
         if DirExists(FullPath) then
         begin
           Log(Format('Path %s exists', [FullPath]));
+          Result := FullPath;
+
+          // Store the last one by default
           DirName := FullPath;
-          Result := True;
           Break;
         end;
       end;
@@ -83,35 +104,90 @@ begin
     FindClose(FindRec);
   end;
   
-  if not Result then
+  if Result = '' then
   begin
     Log(Format('Path %s does not exist', [Path]));
   end;
 end;
 
+procedure ComboBoxChange(Sender: TObject);
+begin
+  case ComboBox.Text of
+    text_2026: DirName := dir_2026;
+    text_2025: DirName := dir_2025;
+    text_2024: DirName := dir_2024;
+    text_2023: DirName := dir_2023;
+    text_s26: DirName := dir_s26;
+    text_r25: DirName := dir_r25;
+  end;
+  Log(Format('Selected index: %s %s', [ComboBox.Text, DirName]));
+  DirTextBox.Text := DirName;
+end;
+
 // Being called before the installation starts
 function InitializeSetup(): Boolean;
 var
+  DescLabel: TLabel;
   PluginDir: string;
 begin
-  // Find path, with the latest version taking priority
+  // Find path for each version
   PluginDir := ExpandConstant('{userappdata}\Maxon\Maxon Cinema 4D ');
-  Result :=
-    TryPath(PluginDir + '2026_*') or
-    TryPath(PluginDir + '2025_*') or
-    TryPath(PluginDir + '2024_*') or
-    TryPath(PluginDir + '2023_*') or
-    TryPath(PluginDir + 'S26_*') or
-    TryPath(PluginDir + 'R25_*'); // 2021
-  // In Pascal, `or` is short-circuiting, so it stops at the first true
-    
-  // If multiple, last match is stored
-  if Result then
+  
+  dir_r25 := TryPath(PluginDir + 'R25_*');  // 2021
+  dir_s26 := TryPath(PluginDir + 'S26_*');
+  dir_2023 := TryPath(PluginDir + '2023_*');
+  dir_2024 := TryPath(PluginDir + '2024_*');
+  dir_2025 := TryPath(PluginDir + '2025_*');
+  dir_2026 := TryPath(PluginDir + '2026_*');
+
+  // If found, continue
+  if DirName <> '' then
   begin
-    Log(Format('Destination %s selected', [DirName]));
+    Log('Found one or more Cinema 4D installations');
+    Result := True;
   end
   else
   begin
     MsgBox('No supported Cinema 4D found, aborting installation', mbError, MB_OK);
+    Result := False;
   end;
+end;
+
+// Being called after the wizard is initialized
+procedure InitializeWizard;
+var
+  DescLabel: TLabel;
+begin
+  // Create a custom page to select the Cinema 4D version
+  CustomPage := CreateCustomPage(wpSelectDir, 'Settings', 'Cinema 4D Version');
+
+  DescLabel := TLabel.Create(WizardForm);
+  DescLabel.Parent := CustomPage.Surface;
+  DescLabel.Left := 0;
+  DescLabel.Top := 0;
+  DescLabel.Caption := 'Select a Cinema 4D version to install the plugin to:';
+
+  ComboBox := TNewComboBox.Create(WizardForm);
+  ComboBox.Parent := CustomPage.Surface;
+  ComboBox.Left := 0;
+  ComboBox.Top := DescLabel.Top + DescLabel.Height + 6;  
+  ComboBox.Width := 220;
+  ComboBox.Style := csDropDownList;
+  if dir_2026 <> '' then ComboBox.Items.Add(text_2026);
+  if dir_2025 <> '' then ComboBox.Items.Add(text_2025);
+  if dir_2024 <> '' then ComboBox.Items.Add(text_2024);
+  if dir_2023 <> '' then ComboBox.Items.Add(text_2023);
+  if dir_s26 <> '' then ComboBox.Items.Add(text_s26);
+  if dir_r25 <> '' then ComboBox.Items.Add(text_r25);
+  ComboBox.ItemIndex := 0;
+  ComboBox.OnChange := @ComboBoxChange;
+
+  // Show the directory path in the edit box
+  DirTextBox := TNewEdit.Create(WizardForm);
+  DirTextBox.Parent := CustomPage.Surface;
+  DirTextBox.Left := 0;
+  DirTextBox.Top := ComboBox.Top + ComboBox.Height + 6;
+  DirTextBox.Width := 600;
+  DirTextBox.Text := DirName;
+  DirTextBox.Enabled := False;
 end;
