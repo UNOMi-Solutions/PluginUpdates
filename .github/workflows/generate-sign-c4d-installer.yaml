@@ -31,7 +31,25 @@ jobs:
           echo "WINDOWS_C4D_ZIP=c4d-lipsync.win32.latest.zip" >> $GITHUB_ENV
           echo "WINDOWS_C4D_INSTALLER=UNOMi_Cinema4D_Plugin.exe" >> $GITHUB_ENV
           echo "WINDOWS_C4D_INNO=builders/unomi-c4d-plugin.win32.iss" >> $GITHUB_ENV
+          
+      # Find installer in the release
+      - name: Curl latest release installer
+        id: get_release
+        shell: bash
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ env.WINDOWS_C4D_TAG }}/${{ env.WINDOWS_C4D_INSTALLER }}"
+          curl -s -I $URL | grep -q "302 Found" && echo "INSTALLER_EXISTS=true" || echo "INSTALLER_EXISTS=false" >> $GITHUB_OUTPUT
 
+      - name: Abort if installer exists
+        run: |
+          if [ "${{ steps.get_release.outputs.INSTALLER_EXISTS }}" == "true" ]; then
+            echo "${{ env.WINDOWS_C4D_INSTALLER }} found in release, exiting..."
+            exit 1
+          fi
+          exit 1
+        shell: bash
+
+      # Continue with the build
       - name: Checkout This Repo
         uses: actions/checkout@v3
         with:
