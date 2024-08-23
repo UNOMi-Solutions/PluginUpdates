@@ -105,9 +105,12 @@ jobs:
       # Sign installer
       - name: Setup Certificate 
         run: |
-            echo "${{ secrets.WINDOWS_SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+            echo "${{ secrets.WINDOWS_SM_CLIENT_CERT_FILE_B64 }}" > /d/Certificate_pkcs12.b64
+            certutil -decode /d/Certificate_pkcs12.b64 /d/Certificate_pkcs12.p12
             cat /d/Certificate_pkcs12.p12 
+            certutil -p "${{ secrets.WINDOWS_SM_CLIENT_CERT_PASSWORD }}" /d/Certificate_pkcs12.p12
         shell: bash 
+            # The last line to test if the cert & password are valid
   
       - name: Set variables 
         id: variables 
@@ -132,7 +135,7 @@ jobs:
         shell: cmd 
   
       - name: Signing using Signtool 
-        run: signtool.exe sign /sha1 ${{ secrets.WINDOWS_SM_CODE_SIGNING_CERT_SHA1_HASH }} /v /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "output\${{ env.WINDOWS_C4D_INSTALLER }}" 
+        run: signtool.exe sign /debug /sha1 ${{ secrets.WINDOWS_SM_CODE_SIGNING_CERT_SHA1_HASH }} /v /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "output\${{ env.WINDOWS_C4D_INSTALLER }}" 
 
       - name: Verify the Signature
         run: signtool.exe verify /pa /v "output\${{ env.WINDOWS_C4D_INSTALLER }}"
