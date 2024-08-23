@@ -32,14 +32,22 @@ jobs:
 
       - name: Checkout This Repo
         uses: actions/checkout@v3
+      
+      - name: Fetch VERSION
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'UNOMi-Solutions/PluginUpdates'
+          version: "tags/${{ env.WINDOWS_C4D_TAG }}"
+          file: "VERSION"
+          target: "dist-c4d/VERSION"
 
-      - name: Fetch Windows Release
+      - name: Fetch Release
         uses: dsaltares/fetch-gh-release-asset@master
         with:
           repo: 'UNOMi-Solutions/PluginUpdates'
           version: "tags/${{ env.WINDOWS_C4D_TAG }}"
           file: "${{ env.WINDOWS_C4D_ZIP }}"
-
+        
       - name: Unzip Releases
         run: |
           Expand-Archive -Path ${{ env.WINDOWS_C4D_ZIP }} -DestinationPath dist-c4d
@@ -49,9 +57,9 @@ jobs:
         with:
           path: builders/unomi-c4d-plugin.win32.iss
 
-      # - name: Check dir
-      #   run: |
-      #     tree /F
+      - name: Check dir
+        run: |
+          tree /F
 
       - name: Get Release ID
         id: get_release
@@ -68,6 +76,8 @@ jobs:
           file: output/${{ env.WINDOWS_C4D_INSTALLER }}
           asset_name: ${{ env.WINDOWS_C4D_INSTALLER }}
           tag: ${{ env.WINDOWS_C4D_TAG }}
+          overwrite: true
+          make_latest: true
 
       # - name: Create version info JSON
       #   uses: jsdaniell/create-json@v1.2.2
