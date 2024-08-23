@@ -3,7 +3,7 @@
 
 #define MyGroupName "UNOMi"
 #define MyAppName "UNOMi Cinema 4D Plugin"
-#define MyAppVersion "1.0.6"
+#define MyAppVersion "0.0.1"
 #define MyAppPublisher "Oomi Inc."
 #define MyAppURL "https://getunomi.com/"
 #define MyAppDir "py-unomi-lipsync"
@@ -13,7 +13,7 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{BD9CC3F9-E403-4359-BD93-68B0DA9006AF}
 AppName={#MyAppName}
-AppVersion={code:GetVersion}
+AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
@@ -52,7 +52,6 @@ Source: "..\dist-c4d\{#MyAppDir}\*"; DestDir: "{app}"; Flags: ignoreversion recu
 var
   FoundMulti: Boolean;
   DirName: string;
-  Version: string;
   Button: TNewButton;
   ComboBox: TNewComboBox;
   CustomPage: TInputDirWizardPage;
@@ -76,11 +75,6 @@ function GetDirName(Param: string): string;
 begin
   // This is only called after InitializeSetup, not called again on dropdown change
   Result := DirName;
-end;
-
-function GetVersion(Param: string): string;
-begin
-  Result := Version;
 end;
 
 function TryPath(Path: string): string;
@@ -140,36 +134,12 @@ begin
   SetInstallDir(DirName);
 end;
 
-procedure CheckVersion;
-// Read VERSION file
-var
-  VersionFile: string;
-  VersionText: AnsiString;
-begin
-  VersionFile := '..\dist-c4d\VERSION';
-  if FileExists(VersionFile) then
-  begin
-    LoadStringFromFile(VersionFile, VersionText);
-    Log(Format('Version: %s', [VersionText]));
-    Version := VersionText;
-  end
-  else
-  begin
-    Log('Version file not found');
-    Version := '1.0.0';
-  end;
-end;
-
 // Being called before the installation starts
 function InitializeSetup(): Boolean;
 var
   DescLabel: TLabel;
   PluginDir: string;
 begin
-  // Read VERSION file to get the version
-  Log('Initializing setup');
-  CheckVersion;
-
   // Find path for each version
   PluginDir := ExpandConstant('{userappdata}\Maxon\Maxon Cinema 4D ');
   
