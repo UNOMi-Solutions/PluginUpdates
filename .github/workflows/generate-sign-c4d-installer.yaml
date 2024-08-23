@@ -41,13 +41,16 @@ jobs:
           curl -s -I $URL | grep -q "302 Found" && echo "INSTALLER_EXISTS=true" || echo "INSTALLER_EXISTS=false" >> $GITHUB_OUTPUT
 
       - name: Abort if installer exists
+        shell: bash
         run: |
           if [ "${{ steps.get_release.outputs.INSTALLER_EXISTS }}" == "true" ]; then
             echo "${{ env.WINDOWS_C4D_INSTALLER }} found in release, exiting..."
-            exit 1
+            gh run cancel ${{ github.run_id }}
+            gh run watch ${{ github.run_id }}
           fi
-          exit 1
-        shell: bash
+          echo "${{ env.WINDOWS_C4D_INSTALLER }} not found in release, continuing..."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Continue with the build
       - name: Checkout This Repo
