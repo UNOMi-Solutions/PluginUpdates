@@ -28,7 +28,7 @@ jobs:
         run: |
           echo "WINDOWS_C4D_TAG=c4d-ls.win32.latest" >> $GITHUB_ENV
           echo "WINDOWS_C4D_ZIP=c4d-lipsync.win32.latest.zip" >> $GITHUB_ENV
-          echo "WINDOWS_C4D_INSTALLER=UNOMi Cinema 4D Plugin.exe" >> $GITHUB_ENV
+          echo "WINDOWS_C4D_INSTALLER=UNOMi_Cinema4D_Plugin.exe" >> $GITHUB_ENV
 
       - name: Checkout This Repo
         uses: actions/checkout@v3
@@ -49,23 +49,25 @@ jobs:
         with:
           path: builders/unomi-c4d-plugin.win32.iss
 
-      - name: Check dir
-        run: |
-          tree /F
+      # - name: Check dir
+      #   run: |
+      #     tree /F
 
       - name: Get Release ID
         id: get_release
         uses: octokit/request-action@v2.x
         with:
           route: GET /repos/UNOMi-Solutions/PluginUpdates/releases/tags/${{ env.WINDOWS_C4D_TAG }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
       - name: Upload installer to existing release
-        uses: actions/upload-release-asset@v1
+        uses: svenstaro/upload-release-action@v2
         with:
-          upload_url: ${{ steps.get_release.outputs.data.upload_url }}
-          asset_path: release/${{ env.WINDOWS_C4D_INSTALLER }}.exe
+          repo_token: ${{ secrets.TOKEN }}
+          file: output/${{ env.WINDOWS_C4D_INSTALLER }}
           asset_name: ${{ env.WINDOWS_C4D_INSTALLER }}
-          asset_content_type: application/octet-stream
+          tag: ${{ env.WINDOWS_C4D_TAG }}
 
       # - name: Create version info JSON
       #   uses: jsdaniell/create-json@v1.2.2
