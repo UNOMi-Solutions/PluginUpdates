@@ -1,0 +1,134 @@
+name: "Generate & sign plugins and installer for distribution - Cinema 4D"
+on:
+  # Manual trigger
+  workflow_dispatch:
+  # API trigger, typed "trigger-event"
+  repository_dispatch:
+    types: [trigger-event]
+  # Release trigger
+  release:
+    types: [published]
+  push:
+    branches:
+      - action
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    outputs:
+      version_number: ${{ steps.get-version.outputs.WORKFLOW_VERSION_NUMBER }}
+      
+    steps:
+      - name: Define env variables
+        id: get-version
+        run: |
+          echo "WINDOWS_C4D_TAG=c4d-ls.win32.latest" >> $GITHUB_ENV
+          echo "WINDOWS_C4D_ZIP=c4d-lipsync.win32.latest.zip" >> $GITHUB_ENV
+          echo "WINDOWS_C4D_INSTALLER=UNOMi Cinema 4D Plugin.exe" >> $GITHUB_ENV
+
+      - name: Checkout This Repo
+        uses: actions/checkout@v3
+
+      - name: Fetch Windows Release
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'UNOMi-Solutions/PluginUpdates'
+          version: 'tags/${{ env.WINDOWS_C4D_TAG }}'
+          file: '${{ env.WINDOWS_C4D_ZIP }}'
+          token: ''
+
+      - name: Unzip Releases
+        run: |
+          Expand-Archive -Path ${{ env.WINDOWS_C4D_ZIP }} -DestinationPath dist-c4d
+
+      - name: Create Installer - Inno Setup Action
+        uses: Minionguyjpro/Inno-Setup-Action@v1.1.0
+        with:
+          path: builders/unomi-c4d-plugin.win32.iss
+
+      # - name: Create version info JSON
+      #   uses: jsdaniell/create-json@v1.2.2
+      #   with:
+      #     name: "version-info.json"
+      #     json: '{"version": "${{ env.WORKFLOW_VERSION_NUMBER }}", "build": ${{ env.WORKFLOW_BUILD_NUMBER }}}'
+          
+      # - name: Unify build number
+      #   shell: bash
+      #   run: |
+      #     mv version-info.json WindowsInstaller/
+      #     sed -i 's/^AppVersion=.*/AppVersion=${{ env.WORKFLOW_VERSION_NUMBER }}(${{ env.WORKFLOW_BUILD_NUMBER }})/' "WindowsInstaller/Updater.ini"
+      #     sed -i 's/^#define MyAppVersion .*/#define MyAppVersion "${{ env.WORKFLOW_COMPLETE_VERSION_NUMBER }}"/' "WindowsInstaller/WinInstallerScript.iss"
+
+      # - name: Create Installer - Inno Setup Action
+      #   uses: Minionguyjpro/Inno-Setup-Action@v1.1.0
+      #   with:
+      #     path: WindowsInstaller/WinInstallerScript.iss
+
+      # - name: Set installer name
+      #   id: set-installer-name
+      #   shell: bash
+      #   run: |
+      #     ADOBE_WINDOWS_INSTALLER_NAME=Avatar.Creator.Adobe.Distribution.Installer_windows_${WORKFLOW_COMPLETE_VERSION_NUMBER}
+      #     echo "ADOBE_WINDOWS_INSTALLER_NAME=${ADOBE_WINDOWS_INSTALLER_NAME}" >> $GITHUB_ENV
+      #     echo "ADOBE_WINDOWS_INSTALLER_NAME=${ADOBE_WINDOWS_INSTALLER_NAME}" >> $GITHUB_OUTPUT
+
+      # - name: Check if Windows Build Was Successful
+      #   shell: bash
+      #   run: |
+      #     if [ ! -e "WindowsInstaller/ReadyInstaller/${{ env.ADOBE_WINDOWS_INSTALLER_NAME }}.exe" ]; then
+      #       exit 1
+      #     fi
+      
+      # - name: Setup Certificate 
+      #   run: |
+      #       echo "${{ secrets.WINDOWS_SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12 
+      #       cat /d/Certificate_pkcs12.p12 
+      #   shell: bash 
+  
+      # - name: Set variables 
+      #   id: variables 
+      #   run: |
+      #       echo "version =${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+      #       echo "SM_HOST=${{ secrets.WINDOWS_SM_HOST }}" >> "$GITHUB_ENV" 
+      #       echo "SM_API_KEY=${{ secrets.WINDOWS_SM_API_KEY }}" >> "$GITHUB_ENV" 
+      #       echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+      #       echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.WINDOWS_SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+      #       echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH 
+      #       echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH 
+      #       echo "C:\Program Files\DigiCert\DigiCert One Signing Manager Tools" >> $GITHUB_PATH 
+      #   shell: bash 
+  
+      # - name: Setup SSM KSP on windows latest 
+      #   run: |
+      #       curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/smtools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o smtools-windows-x64.msi 
+      #       msiexec /i smtools-windows-x64.msi /quiet /qn 
+      #       smksp_registrar.exe list 
+      #       smctl.exe keypair ls 
+      #       C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user 
+      #       smksp_cert_sync.exe 
+      #   shell: cmd 
+  
+      # - name: Signing using Signtool 
+      #   run: signtool.exe sign /sha1 ${{ secrets.WINDOWS_SM_CODE_SIGNING_CERT_SHA1_HASH }} /v /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "WindowsInstaller\ReadyInstaller\${{ env.ADOBE_WINDOWS_INSTALLER_NAME }}.exe" 
+
+      # - name: Verify the Signature
+      #   run: signtool.exe verify /pa /v "WindowsInstaller\ReadyInstaller\${{ env.ADOBE_WINDOWS_INSTALLER_NAME }}.exe"
+
+      # - name: Record Build Number
+      #   shell: bash
+      #   id: record-build-number
+      #   env:
+      #     WORKFLOW_BUILD_NUMBER: ${{ env.WORKFLOW_BUILD_NUMBER }}
+      #     SOURCE_REF: ${{ env.SOURCE_REF }}
+      #   run: |
+      #     "./Support/Windows_Steps/70_Tag Current Build.sh"
+
+      # - name: Create Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     tag_name: ${{ env.TAGNAME }}
+      #     files: "WindowsInstaller/ReadyInstaller/${{ env.ADOBE_WINDOWS_INSTALLER_NAME }}.exe"
