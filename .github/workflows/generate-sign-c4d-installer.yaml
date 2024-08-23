@@ -24,7 +24,7 @@ jobs:
       
     steps:
       - name: Define env variables
-        id: get-version
+        shell: bash
         run: |
           echo "WINDOWS_C4D_TAG=c4d-ls.win32.latest" >> $GITHUB_ENV
           echo "WINDOWS_C4D_ZIP=c4d-lipsync.win32.latest.zip" >> $GITHUB_ENV
@@ -37,9 +37,8 @@ jobs:
         uses: dsaltares/fetch-gh-release-asset@master
         with:
           repo: 'UNOMi-Solutions/PluginUpdates'
-          version: 'tags/${{ env.WINDOWS_C4D_TAG }}'
-          file: '${{ env.WINDOWS_C4D_ZIP }}'
-          token: ''
+          version: "tags/${{ env.WINDOWS_C4D_TAG }}"
+          file: "${{ env.WINDOWS_C4D_ZIP }}"
 
       - name: Unzip Releases
         run: |
