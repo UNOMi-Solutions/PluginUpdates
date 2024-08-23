@@ -23,6 +23,7 @@ jobs:
       version_number: ${{ steps.get-version.outputs.WORKFLOW_VERSION_NUMBER }}
       
     steps:
+      # Initial setup
       - name: Define env variables
         shell: bash
         run: |
@@ -39,7 +40,7 @@ jobs:
       - name: Fetch VERSION
         uses: dsaltares/fetch-gh-release-asset@master
         with:
-          repo: 'UNOMi-Solutions/PluginUpdates'
+          repo: '${{ github.repository }}'
           version: "tags/${{ env.WINDOWS_C4D_TAG }}"
           file: "VERSION"
           target: "dist-c4d/VERSION"
@@ -50,10 +51,12 @@ jobs:
           VERSION=$(cat dist-c4d/VERSION)
           sed -i "s/^#define MyAppVersion .*/#define MyAppVersion \"${VERSION}\"/" "${{ env.WINDOWS_C4D_INNO }}"
 
+
+      # Generate installer
       - name: Fetch Release
         uses: dsaltares/fetch-gh-release-asset@master
         with:
-          repo: 'UNOMi-Solutions/PluginUpdates'
+          repo: '${{ github.repository }}'
           version: "tags/${{ env.WINDOWS_C4D_TAG }}"
           file: "${{ env.WINDOWS_C4D_ZIP }}"
         
@@ -66,22 +69,20 @@ jobs:
         with:
           path: "${{ env.WINDOWS_C4D_INNO }}"
 
+
+      # Sign installer
+      # TODO
+
+
+      # Generating release
       - name: Check dir
         run: |
           tree /F
 
-      - name: Get Release ID
-        id: get_release
-        uses: octokit/request-action@v2.x
-        with:
-          route: GET /repos/UNOMi-Solutions/PluginUpdates/releases/tags/${{ env.WINDOWS_C4D_TAG }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-
       - name: Upload installer to existing release
         uses: svenstaro/upload-release-action@v2
         with:
-          repo_token: ${{ secrets.TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: output/${{ env.WINDOWS_C4D_INSTALLER }}
           asset_name: ${{ env.WINDOWS_C4D_INSTALLER }}
           tag: ${{ env.WINDOWS_C4D_TAG }}
