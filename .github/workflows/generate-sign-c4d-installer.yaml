@@ -29,9 +29,12 @@ jobs:
           echo "WINDOWS_C4D_TAG=c4d-ls.win32.latest" >> $GITHUB_ENV
           echo "WINDOWS_C4D_ZIP=c4d-lipsync.win32.latest.zip" >> $GITHUB_ENV
           echo "WINDOWS_C4D_INSTALLER=UNOMi_Cinema4D_Plugin.exe" >> $GITHUB_ENV
+          echo "WINDOWS_C4D_INNO=builders/unomi-c4d-plugin.win32.iss" >> $GITHUB_ENV
 
       - name: Checkout This Repo
         uses: actions/checkout@v3
+        with:
+          ref: main
       
       - name: Fetch VERSION
         uses: dsaltares/fetch-gh-release-asset@master
@@ -40,6 +43,12 @@ jobs:
           version: "tags/${{ env.WINDOWS_C4D_TAG }}"
           file: "VERSION"
           target: "dist-c4d/VERSION"
+
+      - name: Modify verion in .iss
+        shell: bash
+        run: |
+          VERSION=$(cat dist-c4d/VERSION)
+          sed -i "s/^#define MyAppVersion .*/#define MyAppVersion \"${VERSION}\"/" "${{ env.WINDOWS_C4D_INNO }}"
 
       - name: Fetch Release
         uses: dsaltares/fetch-gh-release-asset@master
@@ -55,7 +64,7 @@ jobs:
       - name: Create Installer - Inno Setup Action
         uses: Minionguyjpro/Inno-Setup-Action@v1.1.0
         with:
-          path: builders/unomi-c4d-plugin.win32.iss
+          path: "${{ env.WINDOWS_C4D_INNO }}"
 
       - name: Check dir
         run: |
