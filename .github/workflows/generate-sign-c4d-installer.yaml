@@ -58,7 +58,6 @@ jobs:
             gh run watch ${{ github.run_id }}
           fi
           echo "${{ env.WINDOWS_C4D_INSTALLER }} not found in release, continuing..."
-          exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
