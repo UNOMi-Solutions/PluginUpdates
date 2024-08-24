@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#Parameters
+PRODUCT_HOME=/Library/__ROOT_DIR__/__APP_ID__
+PLUGIN_DIR=__PLUGIN_DIR__
+APP_DIRS=("/Applications/Maxon Cinema 4D R25"
+"/Applications/Maxon Cinema 4D S26"
+"/Applications/Maxon Cinema 4D 2023"
+"/Applications/Maxon Cinema 4D 2024"
+"/Applications/Maxon Cinema 4D 2025")
+
+echo "Post installation process started"
+
+# Create directories and copy product home content there
+for dir in "${APP_DIRS[@]}"
+do
+    # Only continue if app dir exists
+    if [ ! -d "${dir}" ]; then
+        echo "Directory ${dir} does not exist"
+        continue
+    fi
+    echo "Directory ${dir} exists"
+
+    # Check for our plugin dir inside the app dir
+    full_dir="${dir}/plugins/${PLUGIN_DIR}"
+    if [ -d "${full_dir}" ]; then
+        echo "Directory ${full_dir} exists"
+        echo "Removing directory ${full_dir}"
+        rm -rf "${full_dir}"
+    fi
+    echo "Creating directory ${full_dir}"
+    mkdir -p "${full_dir}"
+    cp -R "${PRODUCT_HOME}/${PLUGIN_DIR}/." "${full_dir}"
+done
+
+Change permissions in home directory
+echo "Change permissions in product home"
+cd ${PRODUCT_HOME}
+chmod -R 755 .
+[ -d /usr/local/bin ] || mkdir /usr/local/bin
+
+echo "Post installation process finished"

@@ -4,3 +4,5 @@
 dist-c4d/
 
 dist-maya/
+
+*.lnk
