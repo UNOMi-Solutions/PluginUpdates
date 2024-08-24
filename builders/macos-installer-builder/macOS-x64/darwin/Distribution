@@ -17,9 +17,9 @@ function installCheck() {
         my.result.type = 'Fatal';
         return false;
     }
-    if(system.files.fileExistsAtPath('/Library/__PRODUCT__/__VERSION__/')) {
+    if(system.files.fileExistsAtPath('/Library/__ROOT_DIR__/__APP_ID__/')) {
         my.result.title = 'Previous Installation Detected';
-        my.result.message = 'A previous installation of __PRODUCT__ exists at /Library/__PRODUCT__/__VERSION__/. This installer will remove the previous installation prior to installing. Please back up any data before proceeding.';
+        my.result.message = 'A previous installation of __PRODUCT__ exists at /Library/__ROOT_DIR__/__APP_ID__/. This installer will remove the previous installation prior to installing. Please back up any data before proceeding.';
         my.result.type = 'Warning';
         return false;
     }
@@ -30,7 +30,7 @@ function installCheck() {
         <line choice="__PRODUCT__"/>
     </choices-outline>
     <choice id="__PRODUCT__" title="__PRODUCT__">
-        <pkg-ref id="__PRODUCT__.pkg"/>
+        <pkg-ref id="__PACKAGE_NAME__"/>
     </choice>
-    <pkg-ref id="__PRODUCT__.pkg" auth="Root">__PRODUCT__.pkg</pkg-ref>
+    <pkg-ref id="__PACKAGE_NAME__" auth="Root">__PACKAGE_NAME__</pkg-ref>
 </installer-script>

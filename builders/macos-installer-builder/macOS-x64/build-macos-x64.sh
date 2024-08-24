@@ -116,6 +116,9 @@ copyBuildDirectory() {
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
+    sed -i '' -e 's/__APP_ID__/'"${APP_ID}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
+    sed -i '' -e 's/__PACKAGE_NAME__/'"${PACKAGE_NAME}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Distribution"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
@@ -145,7 +148,7 @@ function buildPackage() {
     --version "${VERSION}" \
     --scripts "${TARGET_DIRECTORY}/darwin/scripts" \
     --root "${TARGET_DIRECTORY}/darwinpkg" \
-    "${TARGET_DIRECTORY}/package/${PRODUCT}.pkg" > /dev/null 2>&1
+    "${TARGET_DIRECTORY}/package/$1" > /dev/null 2>&1
 }
 
 function buildProduct() {
@@ -171,10 +174,10 @@ function signProduct() {
 
 function createInstaller() {
     log_info "Application installer generation process started.(3 Steps)"
-    buildPackage
+    buildPackage ${PACKAGE_NAME}
     buildProduct ${PACKAGE_NAME}
     [[ $SIGN == "false" ]] && log_info "Skipped signing process."
-    [[ $SIGN == "true" ]] && signProduct ${PACKAGE_NAME} #.pkg
+    [[ $SIGN == "true" ]] && signProduct ${PACKAGE_NAME}
     log_info "Application installer generation steps finished."
 }
 
