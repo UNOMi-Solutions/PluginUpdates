@@ -1,8 +1,9 @@
 #!/bin/bash
 
-#Configuration Variables and Parameters
+# Configuration Variables and Parameters
+# Example: bash build-macos-x64.sh "UNOMi Cinema 4D Plugin" "1.0.0" "C4D" "false" "UNOMi_Cinema4D_Plugin.pkg"
 
-#Parameters
+# Parameters
 PRODUCT=${1}
 VERSION=${2}
 APP_ID=${3}         # Either "c4d" or "maya", selecting the dir in /Resources
@@ -115,10 +116,10 @@ copyBuildDirectory() {
     PLUGIN_DIR=$(basename "$(ls -d "${PACKAGE_DIRECTORY}"/* | head -n 1)")
     echo "Plugin root folder: $PLUGIN_DIR"
 
-    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
-    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
-    chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
+    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
+    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
+    chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
@@ -152,7 +153,7 @@ function buildPackage() {
     log_info "Application installer package building started.(1/3)"
     pkgbuild --identifier "org.${ORG}.${APP_ID}" \
     --version "${VERSION}" \
-    --scripts "${TARGET_DIRECTORY}/darwin/scripts" \
+    --scripts "${TARGET_DIRECTORY}/darwin/${APP_ID}/scripts" \
     --root "${TARGET_DIRECTORY}/darwinpkg" \
     "${TARGET_DIRECTORY}/package/$1" > /dev/null 2>&1
 }
