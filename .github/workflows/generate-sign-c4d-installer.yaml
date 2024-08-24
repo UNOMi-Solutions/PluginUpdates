@@ -16,23 +16,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  build-windows:
-    runs-on: windows-latest
-    outputs:
-      version_number: ${{ steps.get-version.outputs.WORKFLOW_VERSION_NUMBER }}
-      
-    steps:
-      # Initial setup
-      - name: Define env variables
-        shell: bash
-        run: |
-          echo "WINDOWS_C4D_TAG=c4d-ls.win32.latest" >> $GITHUB_ENV
-          echo "WINDOWS_C4D_ZIP=c4d-lipsync.win32.latest.zip" >> $GITHUB_ENV
-          echo "WINDOWS_C4D_INSTALLER=UNOMi_Cinema4D_Plugin.exe" >> $GITHUB_ENV
-          echo "WINDOWS_C4D_INNO=builders/unomi-c4d-plugin.win32.iss" >> $GITHUB_ENV
-          echo "WINDOWS_C4D_INNO_DIR=dist-c4d" >> $GITHUB_ENV
+env:
+  WINDOWS_C4D_TAG: c4d-ls.win32.latest
+  WINDOWS_C4D_ZIP: c4d-lipsync.win32.latest.zip
+  WINDOWS_C4D_INSTALLER: UNOMi_Cinema4D_Plugin.exe
+  WINDOWS_C4D_INNO: builders/unomi-c4d-plugin.win32.iss
+  WINDOWS_C4D_INNO_DIR: dist-c4d
 
+jobs:
+  build-windows-c4d:
+    runs-on: windows-latest
+    steps:
       - name: Checkout This Repo
         uses: actions/checkout@v3
         with:
@@ -154,3 +148,13 @@ jobs:
           tag: ${{ env.WINDOWS_C4D_TAG }}
           overwrite: true
           make_latest: true
+  
+  build-windows-maya:
+    runs-on: windows-latest
+    steps:
+      # Initial setup
+      - name: Checkout This Repo
+        uses: actions/checkout@v3
+        with:
+          ref: main
+  
