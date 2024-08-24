@@ -14,6 +14,7 @@ REPO_DIRECTORY="$(dirname "$(dirname "$(dirname "$SCRIPTPATH")")")"
 TARGET_DIRECTORY="$REPO_DIRECTORY/output"             # Output dir at repo root
 PACKAGE_DIRECTORY="$REPO_DIRECTORY/dist-$APP_ID"    # Input package
 ORG="unomi"
+ROOT_DIR="UnomiPlugin"  # The install dir in /Library
 
 DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
@@ -109,25 +110,25 @@ copyDarwinDirectory(){
 }
 
 copyBuildDirectory() {
-    sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
-    sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
+    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
-    sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
+    sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Distribution"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
-    sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
+    sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Resources/${APP_ID}/"
 
     rm -rf "${TARGET_DIRECTORY}/darwinpkg"
     mkdir -p "${TARGET_DIRECTORY}/darwinpkg"
 
-    #Copy cellery product to /Library/Cellery
-    mkdir -p "${TARGET_DIRECTORY}"/darwinpkg/Library/${PRODUCT}/${VERSION}
-    cp -a "$SCRIPTPATH"/application/. "${TARGET_DIRECTORY}"/darwinpkg/Library/${PRODUCT}/${VERSION}
-    chmod -R 755 "${TARGET_DIRECTORY}"/darwinpkg/Library/${PRODUCT}/${VERSION}
+    # Copy cellery product to /Library/Cellery (determines the install structure after install)
+    mkdir -p "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
+    cp -a "$PACKAGE_DIRECTORY"/. "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
+    chmod -R 755 "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
 
     rm -rf "${TARGET_DIRECTORY}/package"
     mkdir -p "${TARGET_DIRECTORY}/package"
@@ -178,9 +179,9 @@ function createInstaller() {
 }
 
 function createUninstaller(){
-    cp "$SCRIPTPATH/darwin/Resources/${APP_ID}/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}"
-    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}/uninstall.sh"
-    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}/uninstall.sh"
+    cp "$SCRIPTPATH/darwin/Resources/${APP_ID}/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}"
+    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
+    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
 }
 
 #Main script
