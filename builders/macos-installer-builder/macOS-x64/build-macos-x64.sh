@@ -3,12 +3,17 @@
 #Configuration Variables and Parameters
 
 #Parameters
-SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-TARGET_DIRECTORY="$SCRIPTPATH/target"
 PRODUCT=${1}
 VERSION=${2}
-APP_ID=${3} # Either "c4d" or "maya", selecting the dir in /Resources
-SIGN=${4}
+APP_ID=${3}         # Either "c4d" or "maya", selecting the dir in /Resources
+SIGN=${4}           # Either "true" or "false"
+PACKAGE_NAME=${5}   # Name with ".pkg" extension
+
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+REPO_DIRECTORY="$(dirname "$(dirname "$(dirname "$SCRIPTPATH")")")"
+TARGET_DIRECTORY="$REPO_DIRECTORY/output"             # Output dir at repo root
+PACKAGE_DIRECTORY="$REPO_DIRECTORY/dist-$APP_ID"    # Input package
+ORG="unomi"
 
 DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
@@ -135,7 +140,7 @@ copyBuildDirectory() {
 
 function buildPackage() {
     log_info "Application installer package building started.(1/3)"
-    pkgbuild --identifier "org.${PRODUCT}.${VERSION}" \
+    pkgbuild --identifier "org.${ORG}.${APP_ID}" \
     --version "${VERSION}" \
     --scripts "${TARGET_DIRECTORY}/darwin/scripts" \
     --root "${TARGET_DIRECTORY}/darwinpkg" \
@@ -166,9 +171,9 @@ function signProduct() {
 function createInstaller() {
     log_info "Application installer generation process started.(3 Steps)"
     buildPackage
-    buildProduct ${PRODUCT}-macos-installer-x64-${VERSION}.pkg
-    [[ $SIGN == "false" ]] && log_info "Skipped signing process." && break
-    [[ $SIGN == "true" ]] && signProduct ${PRODUCT}-macos-installer-x64-${VERSION}.pkg
+    buildProduct ${PACKAGE_NAME}
+    [[ $SIGN == "false" ]] && log_info "Skipped signing process."
+    [[ $SIGN == "true" ]] && signProduct ${PACKAGE_NAME} #.pkg
     log_info "Application installer generation steps finished."
 }
 
