@@ -1,0 +1,265 @@
+name: "Windows - Generate & sign installer"
+on:
+  # Manual trigger
+  workflow_dispatch:
+  # API trigger, typed "trigger-event"
+  repository_dispatch:
+    types: [trigger-event]
+  # Release trigger
+  release:
+    types: [published]
+  push:
+    branches:
+      - action
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WINDOWS_C4D_TAG: c4d-ls.win32.latest
+  WINDOWS_C4D_ZIP: c4d-lipsync.win32.latest.zip
+  WINDOWS_C4D_INSTALLER: UNOMi_Cinema4D_Plugin.exe
+  WINDOWS_C4D_INNO: builders/unomi-c4d-plugin.win32.iss
+  WINDOWS_C4D_INNO_DIR: dist-c4d
+
+  WINDOWS_MAYA_TAG: maya-ls.win32.latest
+  WINDOWS_MAYA_ZIP: maya-lipsync.win32.latest.zip
+  WINDOWS_MAYA_INSTALLER: UNOMi_Maya_Plugin.exe
+  WINDOWS_MAYA_INNO: builders/unomi-maya-plugin.win32.iss
+  WINDOWS_MAYA_INNO_DIR: dist-maya
+
+jobs:
+  check-releases:
+    runs-on: windows-latest
+    outputs:
+      installer-c4d: ${{ steps.get_release_c4d.outputs.installer }}
+      installer-maya: ${{ steps.get_release_maya.outputs.installer }}
+    steps:
+      # Find installer in the release
+      - name: Cinema4D - Curl latest release installer
+        id: get_release_c4d
+        shell: bash
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ env.WINDOWS_C4D_TAG }}/${{ env.WINDOWS_C4D_INSTALLER }}"
+          if curl -s -I $URL | grep -q "302 Found"; then
+            echo "installer=true" >> $GITHUB_OUTPUT
+          else
+            echo "installer=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Maya - Curl latest release installer
+        id: get_release_maya
+        shell: bash
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ env.WINDOWS_MAYA_TAG }}/${{ env.WINDOWS_MAYA_INSTALLER }}"
+          if curl -s -I $URL | grep -q "302 Found"; then
+            echo "installer=true" >> $GITHUB_OUTPUT
+          else
+            echo "installer=false" >> $GITHUB_OUTPUT
+          fi
+      
+  build-windows-c4d:
+    needs: check-releases
+    if: ${{ needs.check-releases.outputs.installer-c4d == 'false' }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout This Repo
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Fetch VERSION
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.WINDOWS_C4D_TAG }}"
+          file: "VERSION"
+          target: "${{ env.WINDOWS_C4D_INNO_DIR }}/VERSION"
+
+      - name: Modify verion in .iss
+        shell: bash
+        run: |
+          VERSION=$(cat ${{ env.WINDOWS_C4D_INNO_DIR }}/VERSION)
+          sed -i "s/^#define MyAppVersion .*/#define MyAppVersion \"${VERSION}\"/" "${{ env.WINDOWS_C4D_INNO }}"
+
+      # Generate installer
+      - name: Fetch Release
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.WINDOWS_C4D_TAG }}"
+          file: "${{ env.WINDOWS_C4D_ZIP }}"
+        
+      - name: Unzip Releases
+        run: |
+          Expand-Archive -Path ${{ env.WINDOWS_C4D_ZIP }} -DestinationPath ${{ env.WINDOWS_C4D_INNO_DIR }}
+
+      - name: Create Installer - Inno Setup Action
+        uses: Minionguyjpro/Inno-Setup-Action@v1.1.0
+        with:
+          path: "${{ env.WINDOWS_C4D_INNO }}"
+
+      - name: Check if Windows Build Was Successful
+        shell: bash
+        run: |
+          if [ ! -e "output/${{ env.WINDOWS_C4D_INSTALLER }}" ]; then
+            echo "Windows build failed"
+            exit 1
+          fi
+
+      # Sign installer
+      - name: Setup Certificate 
+        run: |
+            echo "${{ secrets.WINDOWS_SM_CLIENT_CERT_FILE_B64 }}" > /d/Certificate_pkcs12.b64
+            certutil -decode /d/Certificate_pkcs12.b64 /d/Certificate_pkcs12.p12
+            cat /d/Certificate_pkcs12.p12 
+            certutil -p "${{ secrets.WINDOWS_SM_CLIENT_CERT_PASSWORD }}" /d/Certificate_pkcs12.p12
+        shell: bash 
+            # The last line to test if the cert & password are valid
+  
+      - name: Set variables 
+        id: variables 
+        run: |
+            echo "SM_HOST=${{ secrets.WINDOWS_SM_HOST }}" >> "$GITHUB_ENV" 
+            echo "SM_API_KEY=${{ secrets.WINDOWS_SM_API_KEY }}" >> "$GITHUB_ENV" 
+            echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+            echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.WINDOWS_SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+            echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH 
+            echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH 
+            echo "C:\Program Files\DigiCert\DigiCert One Signing Manager Tools" >> $GITHUB_PATH 
+        shell: bash 
+  
+      - name: Setup SSM KSP on windows latest 
+        run: |
+            curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/smtools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o smtools-windows-x64.msi 
+            msiexec /i smtools-windows-x64.msi /quiet /qn 
+            smksp_registrar.exe list 
+            smctl.exe keypair ls 
+            C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user 
+            smksp_cert_sync.exe 
+        shell: cmd 
+  
+      - name: Signing using Signtool 
+        run: signtool.exe sign /debug /sha1 ${{ secrets.WINDOWS_SM_CODE_SIGNING_CERT_SHA1_HASH }} /v /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "output\${{ env.WINDOWS_C4D_INSTALLER }}" 
+
+      - name: Verify the Signature
+        run: signtool.exe verify /pa /v "output\${{ env.WINDOWS_C4D_INSTALLER }}"
+
+      # Generating release
+      - name: Check dir
+        run: |
+          tree /F
+
+      - name: Upload installer to existing release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/${{ env.WINDOWS_C4D_INSTALLER }}
+          asset_name: ${{ env.WINDOWS_C4D_INSTALLER }}
+          tag: ${{ env.WINDOWS_C4D_TAG }}
+          overwrite: true
+          make_latest: true
+  
+  build-windows-maya:
+    needs: check-releases
+    if: ${{ needs.check-releases.outputs.installer-maya == 'false' }}
+    runs-on: windows-latest
+    steps:
+      # Initial setup
+      - name: Checkout This Repo
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Fetch VERSION
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.WINDOWS_MAYA_TAG }}"
+          file: "VERSION"
+          target: "${{ env.WINDOWS_MAYA_INNO_DIR }}/VERSION"
+
+      - name: Modify verion in .iss
+        shell: bash
+        run: |
+          VERSION=$(cat ${{ env.WINDOWS_MAYA_INNO_DIR }}/VERSION)
+          sed -i "s/^#define MyAppVersion .*/#define MyAppVersion \"${VERSION}\"/" "${{ env.WINDOWS_MAYA_INNO }}"
+
+      # Generate installer
+      - name: Fetch Release
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.WINDOWS_MAYA_TAG }}"
+          file: "${{ env.WINDOWS_MAYA_ZIP }}"
+        
+      - name: Unzip Releases
+        run: |
+          Expand-Archive -Path ${{ env.WINDOWS_MAYA_ZIP }} -DestinationPath ${{ env.WINDOWS_MAYA_INNO_DIR }}
+
+      - name: Create Installer - Inno Setup Action
+        uses: Minionguyjpro/Inno-Setup-Action@v1.1.0
+        with:
+          path: "${{ env.WINDOWS_MAYA_INNO }}"
+
+      - name: Check if Windows Build Was Successful
+        shell: bash
+        run: |
+          if [ ! -e "output/${{ env.WINDOWS_MAYA_INSTALLER }}" ]; then
+            echo "Windows build failed"
+            exit 1
+          fi
+
+      # Sign installer
+      - name: Setup Certificate 
+        run: |
+            echo "${{ secrets.WINDOWS_SM_CLIENT_CERT_FILE_B64 }}" > /d/Certificate_pkcs12.b64
+            certutil -decode /d/Certificate_pkcs12.b64 /d/Certificate_pkcs12.p12
+            cat /d/Certificate_pkcs12.p12 
+            certutil -p "${{ secrets.WINDOWS_SM_CLIENT_CERT_PASSWORD }}" /d/Certificate_pkcs12.p12
+        shell: bash 
+            # The last line to test if the cert & password are valid
+  
+      - name: Set variables 
+        id: variables 
+        run: |
+            echo "SM_HOST=${{ secrets.WINDOWS_SM_HOST }}" >> "$GITHUB_ENV" 
+            echo "SM_API_KEY=${{ secrets.WINDOWS_SM_API_KEY }}" >> "$GITHUB_ENV" 
+            echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV" 
+            echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.WINDOWS_SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV" 
+            echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH 
+            echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH 
+            echo "C:\Program Files\DigiCert\DigiCert One Signing Manager Tools" >> $GITHUB_PATH 
+        shell: bash 
+  
+      - name: Setup SSM KSP on windows latest 
+        run: |
+            curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/smtools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o smtools-windows-x64.msi 
+            msiexec /i smtools-windows-x64.msi /quiet /qn 
+            smksp_registrar.exe list 
+            smctl.exe keypair ls 
+            C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user 
+            smksp_cert_sync.exe 
+        shell: cmd 
+  
+      - name: Signing using Signtool 
+        run: signtool.exe sign /debug /sha1 ${{ secrets.WINDOWS_SM_CODE_SIGNING_CERT_SHA1_HASH }} /v /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 "output\${{ env.WINDOWS_MAYA_INSTALLER }}" 
+
+      - name: Verify the Signature
+        run: signtool.exe verify /pa /v "output\${{ env.WINDOWS_MAYA_INSTALLER }}"
+
+      # Generating release
+      - name: Check dir
+        run: |
+          tree /F
+
+      - name: Upload installer to existing release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/${{ env.WINDOWS_MAYA_INSTALLER }}
+          asset_name: ${{ env.WINDOWS_MAYA_INSTALLER }}
+          tag: ${{ env.WINDOWS_MAYA_TAG }}
+          overwrite: true
+          make_latest: true
