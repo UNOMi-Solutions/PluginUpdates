@@ -7,6 +7,9 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 TARGET_DIRECTORY="$SCRIPTPATH/target"
 PRODUCT=${1}
 VERSION=${2}
+APP_ID=${3} # Either "c4d" or "maya", selecting the dir in /Resources
+SIGN=${4}
+
 DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
 LOG_PREFIX="[$DATE $TIME]"
@@ -96,7 +99,7 @@ copyDarwinDirectory(){
   createInstallationDirectory
   cp -r "$SCRIPTPATH/darwin" "${TARGET_DIRECTORY}/"
   chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts"
-  chmod -R 755 "${TARGET_DIRECTORY}/darwin/Resources"
+  chmod -R 755 "${TARGET_DIRECTORY}/darwin/Resources/${APP_ID}"
   chmod 755 "${TARGET_DIRECTORY}/darwin/Distribution"
 }
 
@@ -109,9 +112,9 @@ copyBuildDirectory() {
     sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Distribution"
 
-    sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/*.html
-    sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/*.html
-    chmod -R 755 "${TARGET_DIRECTORY}/darwin/Resources/"
+    sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
+    sed -i '' -e 's/__PRODUCT__/'${PRODUCT}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
+    chmod -R 755 "${TARGET_DIRECTORY}/darwin/Resources/${APP_ID}/"
 
     rm -rf "${TARGET_DIRECTORY}/darwinpkg"
     mkdir -p "${TARGET_DIRECTORY}/darwinpkg"
@@ -142,7 +145,7 @@ function buildPackage() {
 function buildProduct() {
     log_info "Application installer product building started.(2/3)"
     productbuild --distribution "${TARGET_DIRECTORY}/darwin/Distribution" \
-    --resources "${TARGET_DIRECTORY}/darwin/Resources" \
+    --resources "${TARGET_DIRECTORY}/darwin/Resources/${APP_ID}" \
     --package-path "${TARGET_DIRECTORY}/package" \
     "${TARGET_DIRECTORY}/pkg/$1" > /dev/null 2>&1
 }
@@ -164,18 +167,13 @@ function createInstaller() {
     log_info "Application installer generation process started.(3 Steps)"
     buildPackage
     buildProduct ${PRODUCT}-macos-installer-x64-${VERSION}.pkg
-    while true; do
-        read -p "Do you wish to sign the installer (You should have Apple Developer Certificate) [y/N]?" answer
-        [[ $answer == "y" || $answer == "Y" ]] && FLAG=true && break
-        [[ $answer == "n" || $answer == "N" || $answer == "" ]] && log_info "Skipped signing process." && FLAG=false && break
-        echo "Please answer with 'y' or 'n'"
-    done
-    [[ $FLAG == "true" ]] && signProduct ${PRODUCT}-macos-installer-x64-${VERSION}.pkg
+    [[ $SIGN == "false" ]] && log_info "Skipped signing process." && break
+    [[ $SIGN == "true" ]] && signProduct ${PRODUCT}-macos-installer-x64-${VERSION}.pkg
     log_info "Application installer generation steps finished."
 }
 
 function createUninstaller(){
-    cp "$SCRIPTPATH/darwin/Resources/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}"
+    cp "$SCRIPTPATH/darwin/Resources/${APP_ID}/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}"
     sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}/uninstall.sh"
     sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${PRODUCT}/${VERSION}/uninstall.sh"
 }
