@@ -23,18 +23,22 @@ env:
   WINDOWS_C4D_INNO: builders/unomi-c4d-plugin.win32.iss
   WINDOWS_C4D_INNO_DIR: dist-c4d
 
+  WINDOWS_MAYA_TAG: maya-ls.win32.latest
+  WINDOWS_MAYA_ZIP: maya-lipsync.win32.latest.zip
+  WINDOWS_MAYA_INSTALLER: UNOMi_Maya_Plugin.exe
+  WINDOWS_MAYA_INNO: builders/unomi-maya-plugin.win32.iss
+  WINDOWS_MAYA_INNO_DIR: dist-maya
+
 jobs:
-  build-windows-c4d:
+  check-releases:
     runs-on: windows-latest
+    outputs:
+      installer-c4d: ${{ steps.get_release_c4d.outputs.installer }}
+      installer-maya: ${{ steps.get_release_maya.outputs.installer }}
     steps:
-      - name: Checkout This Repo
-        uses: actions/checkout@v3
-        with:
-          ref: main
-          
       # Find installer in the release
-      - name: Curl latest release installer
-        id: get_release
+      - name: Cinema4D - Curl latest release installer
+        id: get_release_c4d
         shell: bash
         run: |
           URL="https://github.com/${{ github.repository }}/releases/download/${{ env.WINDOWS_C4D_TAG }}/${{ env.WINDOWS_C4D_INSTALLER }}"
@@ -44,17 +48,26 @@ jobs:
             echo "installer=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Abort if installer exists
+      - name: Maya - Curl latest release installer
+        id: get_release_maya
         shell: bash
         run: |
-          if [ "${{ steps.get_release.outputs.installer }}" == "true" ]; then
-            echo "${{ env.WINDOWS_C4D_INSTALLER }} found in release, exiting..."
-            gh run cancel ${{ github.run_id }}
-            gh run watch ${{ github.run_id }}
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ env.WINDOWS_MAYA_TAG }}/${{ env.WINDOWS_MAYA_INSTALLER }}"
+          if curl -s -I $URL | grep -q "302 Found"; then
+            echo "installer=true" >> $GITHUB_OUTPUT
+          else
+            echo "installer=false" >> $GITHUB_OUTPUT
           fi
-          echo "${{ env.WINDOWS_C4D_INSTALLER }} not found in release, continuing..."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+  build-windows-c4d:
+    needs: check-releases
+    if: ${{ needs.check-releases.outputs.installer-c4d == 'false' }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout This Repo
+        uses: actions/checkout@v3
+        with:
+          ref: main
 
       # Continue with the build
       - name: Fetch VERSION
@@ -150,6 +163,8 @@ jobs:
           make_latest: true
   
   build-windows-maya:
+    needs: check-releases
+    if: ${{ needs.check-releases.outputs.installer-maya == 'false' }}
     runs-on: windows-latest
     steps:
       # Initial setup
