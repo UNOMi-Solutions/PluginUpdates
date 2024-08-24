@@ -15,6 +15,7 @@ TARGET_DIRECTORY="$REPO_DIRECTORY/output"             # Output dir at repo root
 PACKAGE_DIRECTORY="$REPO_DIRECTORY/dist-$APP_ID"    # Input package
 ORG="unomi"
 ROOT_DIR="UnomiPlugin"  # The install dir in /Library
+PLUGIN_DIR=""           # The root dir of the plugin, before the content
 
 DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
@@ -110,6 +111,11 @@ copyDarwinDirectory(){
 }
 
 copyBuildDirectory() {
+    # Get the first folder inside package directory to determine the plugin root dir (the folder inside the release zip)
+    PLUGIN_DIR=$(basename "$(ls -d "${PACKAGE_DIRECTORY}"/* | head -n 1)")
+    echo "Plugin root folder: $PLUGIN_DIR"
+
+    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
     sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
     sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts/postinstall"
