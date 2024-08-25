@@ -1,0 +1,124 @@
+name: "macOS - Generate & sign installer"
+on:
+  # Manual trigger
+  workflow_dispatch:
+  # API trigger, typed "trigger-event"
+  repository_dispatch:
+    types: [trigger-event]
+  # Release trigger
+  release:
+    types: [published]
+  push:
+    branches:
+      - action
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MAC_BUILDER_SH: ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh
+
+  MAC_C4D_TAG: c4d-ls.darwin.latest
+  MAC_C4D_ZIP: c4d-lipsync.darwin.latest.zip
+  MAC_C4D_INSTALLER: UNOMi_Cinema4D_Plugin.pkg
+  MAC_C4D_BUILD_DIR: dist-c4d
+
+  MAC_MAYA_TAG: maya-ls.darwin.latest
+  MAC_MAYA_ZIP: maya-lipsync.darwin.latest.zip
+  MAC_MAYA_INSTALLER: UNOMi_Maya_Plugin.pkg
+  MAC_MAYA_BUILD_DIR: dist-maya
+
+jobs:
+  check-releases:
+    runs-on: macos-latest
+    outputs:
+      installer-c4d: ${{ steps.get_release_c4d.outputs.installer }}
+      installer-maya: ${{ steps.get_release_maya.outputs.installer }}
+    steps:
+      # Find installer in the release
+      - name: Cinema4D - Curl latest release installer
+        id: get_release_c4d
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ env.MAC_C4D_TAG }}/${{ env.MAC_C4D_INSTALLER }}"
+          if curl -s -I $URL | grep -q "302 Found"; then
+            echo "installer=true" >> $GITHUB_OUTPUT
+          else
+            echo "installer=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Maya - Curl latest release installer
+        id: get_release_maya
+        run: |
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ env.MAC_MAYA_TAG }}/${{ env.MAC_MAYA_INSTALLER }}"
+          if curl -s -I $URL | grep -q "302 Found"; then
+            echo "installer=true" >> $GITHUB_OUTPUT
+          else
+            echo "installer=false" >> $GITHUB_OUTPUT
+          fi
+      
+  build-macos-c4d:
+    needs: check-releases
+    if: ${{ needs.check-releases.outputs.installer-c4d == 'false' }}
+    runs-on: macos-latest
+    steps:
+      - name: Checkout This Repo
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Fetch VERSION
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.MAC_C4D_TAG }}"
+          file: "VERSION"
+          target: "${{ env.MAC_C4D_BUILD_DIR }}/VERSION"
+
+      # Generate installer
+      - name: Fetch Release
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.MAC_C4D_TAG }}"
+          file: "${{ env.MAC_C4D_ZIP }}"
+        
+      - name: Unzip Releases
+        run: |
+          unzip ${{ env.MAC_C4D_ZIP }} -d ${{ env.MAC_C4D_BUILD_DIR }}
+
+      - name: Create Installer - macOS Installer Builder
+        run: |
+          VERSION=$(cat "${{ env.MAC_C4D_BUILD_DIR }}/VERSION")
+          chmod +x "${{ env.MAC_BUILDER_SH }}"
+          ${{ env.MAC_BUILDER_SH }} "UNOMi Cinema 4D Plugin" "$VERSION" "C4D" "false" "${{ env.MAC_C4D_INSTALLER }}"
+
+      - name: Check if Build Was Successful
+        run: |
+          if [ ! -e "output/pkg/${{ env.MAC_C4D_INSTALLER }}" ]; then
+            echo "Build failed"
+            exit 1
+          fi
+
+      # Sign installer
+      # TODO
+      
+      # Generating release
+      - name: Upload installer to existing release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/pkg/${{ env.MAC_C4D_INSTALLER }}
+          asset_name: ${{ env.MAC_C4D_INSTALLER }}
+          tag: ${{ env.MAC_C4D_TAG }}
+          overwrite: true
+          make_latest: true
+  
+  build-macos-maya:
+    needs: check-releases
+    if: ${{ needs.check-releases.outputs.installer-maya == 'false' }}
+    runs-on: macos-latest
+    steps:
+      - name: Do nothing yet
+        run: echo "Do nothing yet"
+      
