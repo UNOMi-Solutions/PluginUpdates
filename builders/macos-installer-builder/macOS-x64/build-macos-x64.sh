@@ -168,25 +168,12 @@ function buildProduct() {
     "${TARGET_DIRECTORY}/pkg/$1"
 }
 
-function signProduct() {
-    log_info "Application installer signing process started.(3/3)"
-    mkdir -pv "${TARGET_DIRECTORY}/pkg-signed"
-    chmod -R 755 "${TARGET_DIRECTORY}/pkg-signed"
-
-    read -p "Please enter the Apple Developer Installer Certificate ID:" APPLE_DEVELOPER_CERTIFICATE_ID
-    productsign --sign "Developer ID Installer: ${APPLE_DEVELOPER_CERTIFICATE_ID}" \
-    "${TARGET_DIRECTORY}/pkg/$1" \
-    "${TARGET_DIRECTORY}/pkg-signed/$1"
-
-    pkgutil --check-signature "${TARGET_DIRECTORY}/pkg-signed/$1"
-}
-
 function createInstaller() {
     log_info "Application installer generation process started.(3 Steps)"
     buildPackage ${PACKAGE_NAME}
     buildProduct ${PACKAGE_NAME}
-    [[ $SIGN == "false" ]] && log_info "Skipped signing process."
-    [[ $SIGN == "true" ]] && signProduct ${PACKAGE_NAME}
+    log_info "Skipped signing process."
+    # Signing is done by another script
     log_info "Application installer generation steps finished."
 }
 

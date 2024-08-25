@@ -63,7 +63,8 @@ jobs:
       - name: Checkout This Repo
         uses: actions/checkout@v3
         with:
-          ref: main
+          # Target the branch that triggered the workflow
+          ref: ${{ github.ref }}
 
       - name: Fetch VERSION
         uses: dsaltares/fetch-gh-release-asset@master
