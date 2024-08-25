@@ -17,8 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MAC_BUILDER_SH: ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh
-
   MAC_C4D_TAG: c4d-ls.darwin.latest
   MAC_C4D_ZIP: c4d-lipsync.darwin.latest.zip
   MAC_C4D_INSTALLER: UNOMi_Cinema4D_Plugin.pkg
@@ -89,26 +87,25 @@ jobs:
 
       - name: Create Installer - macOS Installer Builder
         run: |
+          chmod -R 777 ./builders/
           VERSION=$(cat "${{ env.MAC_C4D_BUILD_DIR }}/VERSION")
-          chmod +x "${{ env.MAC_BUILDER_SH }}"
-          ${{ env.MAC_BUILDER_SH }} "UNOMi Cinema 4D Plugin" "$VERSION" "C4D" "false" "${{ env.MAC_C4D_INSTALLER }}"
+          ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh \
+            "UNOMi Cinema 4D Plugin" "$VERSION" "C4D" "false" "${{ env.MAC_C4D_INSTALLER }}"
 
-      - name: Check if Build Was Successful
+      - name: Sign and Notarize Installer
+        env: 
+          NOTARIZATION_KEY_ID: ${{ secrets.NOTARIZATION_KEY_ID }}
+          NOTARIZATION_PRIVATE_KEY: ${{ secrets.NOTARIZATION_PRIVATE_KEY }}
+          NOTARIZATION_ISSUER_ID: ${{ secrets.NOTARIZATION_ISSUER_ID }}
         run: |
-          if [ ! -e "output/pkg/${{ env.MAC_C4D_INSTALLER }}" ]; then
-            echo "Build failed"
-            exit 1
-          fi
-
-      # Sign installer
-      # TODO
+          ./builders/macos-sign-notarize.sh "output/pkg/${{ env.MAC_C4D_INSTALLER }}" "output/${{ env.MAC_C4D_INSTALLER }}"
       
       # Generating release
       - name: Upload installer to existing release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: output/pkg/${{ env.MAC_C4D_INSTALLER }}
+          file: output/${{ env.MAC_C4D_INSTALLER }}
           asset_name: ${{ env.MAC_C4D_INSTALLER }}
           tag: ${{ env.MAC_C4D_TAG }}
           overwrite: true
