@@ -153,9 +153,9 @@ function buildPackage() {
     log_info "Application installer package building started.(1/3)"
     pkgbuild --identifier "org.${ORG}.${APP_ID}" \
     --version "${VERSION}" \
-    --scripts "${TARGET_DIRECTORY}/darwin/${APP_ID}/scripts" \
+    --scripts "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}" \
     --root "${TARGET_DIRECTORY}/darwinpkg" \
-    "${TARGET_DIRECTORY}/package/$1" > /dev/null 2>&1
+    "${TARGET_DIRECTORY}/package/$1"
 }
 
 function buildProduct() {
@@ -163,7 +163,7 @@ function buildProduct() {
     productbuild --distribution "${TARGET_DIRECTORY}/darwin/Distribution" \
     --resources "${TARGET_DIRECTORY}/darwin/Resources/${APP_ID}" \
     --package-path "${TARGET_DIRECTORY}/package" \
-    "${TARGET_DIRECTORY}/pkg/$1" > /dev/null 2>&1
+    "${TARGET_DIRECTORY}/pkg/$1"
 }
 
 function signProduct() {
