@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 
 # imported env vars
-# NOTARIZATION_KEY_ID
 # NOTARIZATION_PRIVATE_KEY
+# NOTARIZATION_KEY_ID
 # NOTARIZATION_ISSUER_ID
 # end imports
+
+# Respectively those values are explained here:
+# https://keith.github.io/xcode-man-pages/notarytool.1.html#AUTHENTICATION_OPTIONS
+# They are basically App Store Connect API keys
+
 
 PACKAGE_NAME=${1}   # Name & dir with ".pkg" extension
 SIGNED_NAME=${2}
