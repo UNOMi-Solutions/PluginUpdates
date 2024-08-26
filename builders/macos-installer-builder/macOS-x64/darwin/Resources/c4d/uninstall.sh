@@ -48,8 +48,8 @@ done
 
 
 #Need to replace these with install preparation script
-VERSION=__VERSION__
-PRODUCT=__PRODUCT__
+VERSION="__VERSION__"
+PRODUCT="__PRODUCT__"
 
 echo "Application uninstalling process started"
 # remove link to shorcut file
@@ -71,7 +71,7 @@ else
 fi
 
 #remove application source distribution
-[ -e "${PRODUCT_HOME}" ] && rm -rf "${PRODUCT_HOME}"
+[ -e "${PRODUCT_HOME}/${PLUGIN_DIR}" ] && rm -rf "${PRODUCT_HOME}/${PLUGIN_DIR}"
 if [ $? -eq 0 ]
 then
   echo "[3/4] [DONE] Successfully deleted application"
