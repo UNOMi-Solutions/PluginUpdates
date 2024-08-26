@@ -9,6 +9,7 @@ Meanwhile the action in this repo, once triggered, will generate an installer fo
 
 ## Certifications
 
+### Windows
 Windows certs are obtained from DigiCert, there are two important websites:
 
 - https://www.digicert.com/
@@ -38,6 +39,15 @@ Access to the main DigiCert is limited to just Obi, but the DigiCert One is acce
 7. Go down, and find "fingerprints", this is the SHA-1 fingerprint for the `Code Signing` certificate.
 8. Basically we will use all the client info on #4 to grab and attach code signing certificate in #7 to the installer.
 
+### macOS
+Apps in macOS requries these steps: sign & notarize.
+
+- Signing requires the relevant certs installed on the system. In GitHub action, this is obtained through their API, requiring cert installer with its password. At the time of writing, it wasn't expired.
+
+- Notarization process can be done using the notarytool. More information is [Xcode Docs](https://keith.github.io/xcode-man-pages/notarytool.1.html#AUTHENTICATION_OPTIONS). In short, our process uses App Store Connect API Keys:
+
+    > Developer ID team administrators can create App Store Connect API keys for the developers on their team by logging into https://appstoreconnect.apple.com/access/api and selecting the "Keys" tab. For security purposes, the private key can only be downloaded once.
+    
 ## Conventions:
 
 Releases for different types of plugins are named with the following prefixes:
