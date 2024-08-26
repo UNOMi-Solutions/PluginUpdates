@@ -6,7 +6,7 @@
 # Parameters
 PRODUCT=${1}
 VERSION=${2}
-APP_ID=${3}         # Either "c4d" or "maya", selecting the dir in /Resources
+APP_ID=${3}         # Either "C4D" or "MAYA", selecting the dir in /Resources
 SIGN=${4}           # Either "true" or "false"
 PACKAGE_NAME=${5}   # Name with ".pkg" extension
 
@@ -15,8 +15,18 @@ REPO_DIRECTORY="$(dirname "$(dirname "$(dirname "$SCRIPTPATH")")")"
 TARGET_DIRECTORY="$REPO_DIRECTORY/output"             # Output dir at repo root
 PACKAGE_DIRECTORY="$REPO_DIRECTORY/dist-$APP_ID"    # Input package
 ORG="unomi"
-ROOT_DIR="UnomiPlugin"  # The install dir is in /Library/${ROOT_DIR}/${APP_ID}
-PLUGIN_DIR=""           # The root dir of the plugin, before the content
+
+if [ "$APP_ID" == "C4D" ]; then
+    ROOT_DIR="Library/UnomiPlugin/${APP_ID}"
+else if [ "$APP_ID" == "MAYA" ]; then
+    ROOT_DIR="Users/Shared/Autodesk/ApplicationAddins"
+else 
+    echo "Invalid APP_ID. Please enter either 'C4D' or 'MAYA'"
+    exit 1
+fi
+PLUGIN_DIR=""           # The root dir of the plugin, set during building (the root dir of the zip)
+
+# So, the final install dir is in /${ROOT_DIR}/${PLUGIN_DIR}
 
 DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
@@ -137,10 +147,10 @@ copyBuildDirectory() {
     rm -rf "${TARGET_DIRECTORY}/darwinpkg"
     mkdir -p "${TARGET_DIRECTORY}/darwinpkg"
 
-    # Copy cellery product to /Library/Cellery (determines the install structure after install)
-    mkdir -p "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
-    cp -a "$PACKAGE_DIRECTORY"/. "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
-    chmod -R 755 "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
+    # Copy cellery product to /Library/... (determines where to install)
+    mkdir -p "${TARGET_DIRECTORY}"/darwinpkg/${ROOT_DIR}
+    cp -a "$PACKAGE_DIRECTORY"/. "${TARGET_DIRECTORY}"/darwinpkg/${ROOT_DIR}
+    chmod -R 755 "${TARGET_DIRECTORY}"/darwinpkg/${ROOT_DIR}
 
     rm -rf "${TARGET_DIRECTORY}/package"
     mkdir -p "${TARGET_DIRECTORY}/package"
