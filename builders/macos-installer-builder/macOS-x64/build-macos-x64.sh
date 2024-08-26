@@ -188,13 +188,13 @@ function createInstaller() {
 }
 
 function createUninstaller(){
-    cp "$SCRIPTPATH/darwin/Resources/${APP_ID}/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}"
-    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"    
-    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e 's/__ORG__/'${ORG}'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
+    cp "$SCRIPTPATH/darwin/Resources/${APP_ID}/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}"
+    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"    
+    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e 's/__ORG__/'${ORG}'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
 }
 
 #Main script
