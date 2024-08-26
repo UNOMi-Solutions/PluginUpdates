@@ -100,15 +100,18 @@ jobs:
             "UNOMi Cinema 4D Plugin" "$VERSION" "C4D" "false" "${{ env.MAC_C4D_INSTALLER }}"
 
       - name: Sign and Notarize Installer
+        id: sign_notarize
         env: 
           NOTARIZATION_KEY_ID: ${{ secrets.NOTARIZATION_KEY_ID }}
           NOTARIZATION_PRIVATE_KEY: ${{ secrets.NOTARIZATION_PRIVATE_KEY }}
           NOTARIZATION_ISSUER_ID: ${{ secrets.NOTARIZATION_ISSUER_ID }}
         run: |
           ./builders/macos-sign-notarize.sh "output/pkg/${{ env.MAC_C4D_INSTALLER }}" "output/${{ env.MAC_C4D_INSTALLER }}"
-      
+        continue-on-error: true
+
       # Generating release
       - name: Upload installer to existing release
+        if: steps.sign_notarize.outcome == 'success'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -117,8 +120,19 @@ jobs:
           tag: ${{ env.MAC_C4D_TAG }}
           overwrite: true
           make_latest: true
+
+      - name: Upload installer to existing release - non-notarized
+        if: steps.sign_notarize.outcome == 'failure'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/pkg/${{ env.MAC_C4D_INSTALLER }}
+          asset_name: Unnotarized_${{ env.MAC_C4D_INSTALLER }}
+          tag: ${{ env.MAC_C4D_TAG }}
+          overwrite: true
+          make_latest: true
   
-  build-macos-MAYA:
+  build-macos-maya:
     needs: check-releases
     if: ${{ needs.check-releases.outputs.installer-maya == 'false' }}
     runs-on: macos-latest
@@ -170,14 +184,27 @@ jobs:
           NOTARIZATION_ISSUER_ID: ${{ secrets.NOTARIZATION_ISSUER_ID }}
         run: |
           ./builders/macos-sign-notarize.sh "output/pkg/${{ env.MAC_MAYA_INSTALLER }}" "output/${{ env.MAC_MAYA_INSTALLER }}"
+        continue-on-error: true
       
       # Generating release
       - name: Upload installer to existing release
+        if: steps.sign_notarize.outcome == 'success'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: output/${{ env.MAC_MAYA_INSTALLER }}
           asset_name: ${{ env.MAC_MAYA_INSTALLER }}
+          tag: ${{ env.MAC_MAYA_TAG }}
+          overwrite: true
+          make_latest: true
+          
+      - name: Upload installer to existing release - non-notarized
+        if: steps.sign_notarize.outcome == 'failure'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/pkg/${{ env.MAC_MAYA_INSTALLER }}
+          asset_name: Unnotarized_${{ env.MAC_MAYA_INSTALLER }}
           tag: ${{ env.MAC_MAYA_TAG }}
           overwrite: true
           make_latest: true
