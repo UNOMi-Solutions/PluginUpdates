@@ -18,14 +18,14 @@ ORG="unomi"
 
 if [ "$APP_ID" == "C4D" ]; then
     ROOT_DIR="Library/UnomiPlugin/${APP_ID}"
-else if [ "$APP_ID" == "MAYA" ]; then
+elif [ "$APP_ID" == "MAYA" ]; then
     ROOT_DIR="Users/Shared/Autodesk/ApplicationAddins"
 else 
     echo "Invalid APP_ID. Please enter either 'C4D' or 'MAYA'"
     exit 1
 fi
+ROOT_DIR_ALT=$(echo "$ROOT_DIR" | sed 's/\//\\\//g') # Escape slashes, to be used in sed
 PLUGIN_DIR=""           # The root dir of the plugin, set during building (the root dir of the zip)
-
 # So, the final install dir is in /${ROOT_DIR}/${PLUGIN_DIR}
 
 DATE=`date +%Y-%m-%d`
@@ -127,20 +127,21 @@ copyBuildDirectory() {
     echo "Plugin root folder: $PLUGIN_DIR"
 
     sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
     sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__APP_ID__/'"${APP_ID}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__PACKAGE_NAME__/'"${PACKAGE_NAME}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Distribution"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
     sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
+    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
     sed -i '' -e 's/__APP_ID__/'"${APP_ID}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Resources/${APP_ID}/"
 
@@ -192,7 +193,7 @@ function createUninstaller(){
     sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
     sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"    
     sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
     sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
     sed -i '' -e 's/__ORG__/'${ORG}'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
 }
