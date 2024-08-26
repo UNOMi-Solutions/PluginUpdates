@@ -6,7 +6,7 @@
 # Parameters
 PRODUCT=${1}
 VERSION=${2}
-APP_ID=${3}         # Either "c4d" or "maya", selecting the dir in /Resources
+APP_ID=${3}         # Either "C4D" or "MAYA", selecting the dir in /Resources
 SIGN=${4}           # Either "true" or "false"
 PACKAGE_NAME=${5}   # Name with ".pkg" extension
 
@@ -15,8 +15,18 @@ REPO_DIRECTORY="$(dirname "$(dirname "$(dirname "$SCRIPTPATH")")")"
 TARGET_DIRECTORY="$REPO_DIRECTORY/output"             # Output dir at repo root
 PACKAGE_DIRECTORY="$REPO_DIRECTORY/dist-$APP_ID"    # Input package
 ORG="unomi"
-ROOT_DIR="UnomiPlugin"  # The install dir is in /Library/${ROOT_DIR}/${APP_ID}
-PLUGIN_DIR=""           # The root dir of the plugin, before the content
+
+if [ "$APP_ID" == "C4D" ]; then
+    ROOT_DIR="Library/UnomiPlugin/${APP_ID}"
+elif [ "$APP_ID" == "MAYA" ]; then
+    ROOT_DIR="Users/Shared/Autodesk/ApplicationAddins"
+else 
+    echo "Invalid APP_ID. Please enter either 'C4D' or 'MAYA'"
+    exit 1
+fi
+ROOT_DIR_ALT=$(echo "$ROOT_DIR" | sed 's/\//\\\//g') # Escape slashes, to be used in sed
+PLUGIN_DIR=""           # The root dir of the plugin, set during building (the root dir of the zip)
+# So, the final install dir is in /${ROOT_DIR}/${PLUGIN_DIR}
 
 DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
@@ -117,30 +127,31 @@ copyBuildDirectory() {
     echo "Plugin root folder: $PLUGIN_DIR"
 
     sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
     sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__APP_ID__/'"${APP_ID}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     sed -i '' -e 's/__PACKAGE_NAME__/'"${PACKAGE_NAME}"'/g' "${TARGET_DIRECTORY}/darwin/Distribution"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Distribution"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
     sed -i '' -e 's/__PRODUCT__/'"${PRODUCT}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
+    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
     sed -i '' -e 's/__APP_ID__/'"${APP_ID}"'/g' "${TARGET_DIRECTORY}"/darwin/Resources/"${APP_ID}"/*.html
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/Resources/${APP_ID}/"
 
     rm -rf "${TARGET_DIRECTORY}/darwinpkg"
     mkdir -p "${TARGET_DIRECTORY}/darwinpkg"
 
-    # Copy cellery product to /Library/Cellery (determines the install structure after install)
-    mkdir -p "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
-    cp -a "$PACKAGE_DIRECTORY"/. "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
-    chmod -R 755 "${TARGET_DIRECTORY}"/darwinpkg/Library/${ROOT_DIR}/${APP_ID}
+    # Copy cellery product to /Library/... (determines where to install)
+    mkdir -p "${TARGET_DIRECTORY}"/darwinpkg/${ROOT_DIR}
+    cp -a "$PACKAGE_DIRECTORY"/. "${TARGET_DIRECTORY}"/darwinpkg/${ROOT_DIR}
+    chmod -R 755 "${TARGET_DIRECTORY}"/darwinpkg/${ROOT_DIR}
 
     rm -rf "${TARGET_DIRECTORY}/package"
     mkdir -p "${TARGET_DIRECTORY}/package"
@@ -178,13 +189,13 @@ function createInstaller() {
 }
 
 function createUninstaller(){
-    cp "$SCRIPTPATH/darwin/Resources/${APP_ID}/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}"
-    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"    
-    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
-    sed -i '' -e 's/__ORG__/'${ORG}'/g' "${TARGET_DIRECTORY}/darwinpkg/Library/${ROOT_DIR}/${APP_ID}/uninstall.sh"
+    cp "$SCRIPTPATH/darwin/Resources/${APP_ID}/uninstall.sh" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}"
+    sed -i '' -e "s/__VERSION__/${VERSION}/g" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e "s/__PRODUCT__/${PRODUCT}/g" "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"    
+    sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
+    sed -i '' -e 's/__ORG__/'${ORG}'/g' "${TARGET_DIRECTORY}/darwinpkg/${ROOT_DIR}/${PLUGIN_DIR}/uninstall.sh"
 }
 
 #Main script
