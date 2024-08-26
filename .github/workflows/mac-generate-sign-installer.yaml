@@ -132,6 +132,10 @@ jobs:
           overwrite: true
           make_latest: true
   
+      - name: Exit as failed, if notarization failed
+        if: steps.sign_notarize.outcome == 'failure'
+        run: exit 1
+  
   build-macos-maya:
     needs: check-releases
     if: ${{ needs.check-releases.outputs.installer-maya == 'false' }}
@@ -208,4 +212,8 @@ jobs:
           tag: ${{ env.MAC_MAYA_TAG }}
           overwrite: true
           make_latest: true
+
+      - name: Exit as failed, if notarization failed
+        if: steps.sign_notarize.outcome == 'failure'
+        run: exit 1
       
