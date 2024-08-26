@@ -7,7 +7,7 @@ DATE=`date +%Y-%m-%d`
 TIME=`date +%H:%M:%S`
 LOG_PREFIX="[$DATE $TIME]"
 
-PRODUCT_HOME=/Library/__ROOT_DIR__/__APP_ID__
+PRODUCT_HOME=/__ROOT_DIR__
 PLUGIN_DIR=__PLUGIN_DIR__
 APP_URL="org.__ORG__.__APP_ID__"
 APP_DIRS=("/Applications/Maxon Cinema 4D R25"
