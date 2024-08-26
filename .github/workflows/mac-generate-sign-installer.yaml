@@ -100,15 +100,18 @@ jobs:
             "UNOMi Cinema 4D Plugin" "$VERSION" "C4D" "false" "${{ env.MAC_C4D_INSTALLER }}"
 
       - name: Sign and Notarize Installer
+        id: sign_notarize
         env: 
           NOTARIZATION_KEY_ID: ${{ secrets.NOTARIZATION_KEY_ID }}
           NOTARIZATION_PRIVATE_KEY: ${{ secrets.NOTARIZATION_PRIVATE_KEY }}
           NOTARIZATION_ISSUER_ID: ${{ secrets.NOTARIZATION_ISSUER_ID }}
         run: |
           ./builders/macos-sign-notarize.sh "output/pkg/${{ env.MAC_C4D_INSTALLER }}" "output/${{ env.MAC_C4D_INSTALLER }}"
-      
+        continue-on-error: true
+
       # Generating release
       - name: Upload installer to existing release
+        if: steps.sign_notarize.outcome == 'success'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -117,12 +120,100 @@ jobs:
           tag: ${{ env.MAC_C4D_TAG }}
           overwrite: true
           make_latest: true
+
+      - name: Upload installer to existing release - non-notarized
+        if: steps.sign_notarize.outcome == 'failure'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/pkg/${{ env.MAC_C4D_INSTALLER }}
+          asset_name: Unnotarized_${{ env.MAC_C4D_INSTALLER }}
+          tag: ${{ env.MAC_C4D_TAG }}
+          overwrite: true
+          make_latest: true
+  
+      - name: Exit as failed, if notarization failed
+        if: steps.sign_notarize.outcome == 'failure'
+        run: exit 1
   
   build-macos-maya:
     needs: check-releases
     if: ${{ needs.check-releases.outputs.installer-maya == 'false' }}
     runs-on: macos-latest
     steps:
-      - name: Do nothing yet
-        run: echo "Do nothing yet"
+      - name: Install Signing Certificates
+        uses: Apple-Actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.CERT_INSTALLER_BASE64 }}
+          p12-password: ${{ secrets.CERT_INSTALLER_PASSWORD }}
+
+      - name: Checkout This Repo
+        uses: actions/checkout@v3
+        with:
+          # Target the branch that triggered the workflow
+          ref: ${{ github.ref }}
+
+      - name: Fetch VERSION
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.MAC_MAYA_TAG }}"
+          file: "VERSION"
+          target: "${{ env.MAC_MAYA_BUILD_DIR }}/VERSION"
+
+      # Generate installer
+      - name: Fetch Release
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: '${{ github.repository }}'
+          version: "tags/${{ env.MAC_MAYA_TAG }}"
+          file: "${{ env.MAC_MAYA_ZIP }}"
+        
+      - name: Unzip Releases
+        run: |
+          unzip ${{ env.MAC_MAYA_ZIP }} -d ${{ env.MAC_MAYA_BUILD_DIR }}
+
+      - name: Create Installer - macOS Installer Builder
+        run: |
+          chmod -R 777 ./builders/
+          VERSION=$(cat "${{ env.MAC_MAYA_BUILD_DIR }}/VERSION")
+          ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh \
+            "UNOMi Cinema 4D Plugin" "$VERSION" "MAYA" "false" "${{ env.MAC_MAYA_INSTALLER }}"
+
+      - name: Sign and Notarize Installer
+        id: sign_notarize
+        env: 
+          NOTARIZATION_KEY_ID: ${{ secrets.NOTARIZATION_KEY_ID }}
+          NOTARIZATION_PRIVATE_KEY: ${{ secrets.NOTARIZATION_PRIVATE_KEY }}
+          NOTARIZATION_ISSUER_ID: ${{ secrets.NOTARIZATION_ISSUER_ID }}
+        run: |
+          ./builders/macos-sign-notarize.sh "output/pkg/${{ env.MAC_MAYA_INSTALLER }}" "output/${{ env.MAC_MAYA_INSTALLER }}"
+        continue-on-error: true
+      
+      # Generating release
+      - name: Upload installer to existing release
+        if: steps.sign_notarize.outcome == 'success'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/${{ env.MAC_MAYA_INSTALLER }}
+          asset_name: ${{ env.MAC_MAYA_INSTALLER }}
+          tag: ${{ env.MAC_MAYA_TAG }}
+          overwrite: true
+          make_latest: true
+          
+      - name: Upload installer to existing release - non-notarized
+        if: steps.sign_notarize.outcome == 'failure'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: output/pkg/${{ env.MAC_MAYA_INSTALLER }}
+          asset_name: Unnotarized_${{ env.MAC_MAYA_INSTALLER }}
+          tag: ${{ env.MAC_MAYA_TAG }}
+          overwrite: true
+          make_latest: true
+
+      - name: Exit as failed, if notarization failed
+        if: steps.sign_notarize.outcome == 'failure'
+        run: exit 1
       
