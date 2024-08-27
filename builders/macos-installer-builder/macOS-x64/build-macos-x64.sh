@@ -128,7 +128,6 @@ copyBuildDirectory() {
 
     sed -i '' -e 's/__PLUGIN_DIR__/'"${PLUGIN_DIR}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
     sed -i '' -e 's/__ROOT_DIR__/'"${ROOT_DIR_ALT}"'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
-    sed -i '' -e 's/__APP_ID__/'${APP_ID}'/g' "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
     chmod -R 755 "${TARGET_DIRECTORY}/darwin/scripts/${APP_ID}/postinstall"
 
     sed -i '' -e 's/__VERSION__/'${VERSION}'/g' "${TARGET_DIRECTORY}/darwin/Distribution"

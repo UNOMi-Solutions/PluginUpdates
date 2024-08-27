@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Parameters
-PRODUCT_HOME=/Library/__ROOT_DIR__/__APP_ID__
+PRODUCT_HOME=/__ROOT_DIR__
 PLUGIN_DIR=__PLUGIN_DIR__
 APP_DIRS=("/Applications/Maxon Cinema 4D R25"
 "/Applications/Maxon Cinema 4D S26"
