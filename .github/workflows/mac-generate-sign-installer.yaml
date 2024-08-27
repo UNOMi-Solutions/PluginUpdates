@@ -78,7 +78,7 @@ jobs:
           repo: '${{ github.repository }}'
           version: "tags/${{ env.MAC_C4D_TAG }}"
           file: "VERSION"
-          target: "${{ env.MAC_C4D_BUILD_DIR }}/VERSION"
+          target: "VERSION"
 
       # Generate installer
       - name: Fetch Release
@@ -95,7 +95,7 @@ jobs:
       - name: Create Installer - macOS Installer Builder
         run: |
           chmod -R 777 ./builders/
-          VERSION=$(cat "${{ env.MAC_C4D_BUILD_DIR }}/VERSION")
+          VERSION=$(cat "VERSION")
           ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh \
             "UNOMi Cinema 4D Plugin" "$VERSION" "C4D" "false" "${{ env.MAC_C4D_INSTALLER }}"
 
@@ -159,7 +159,7 @@ jobs:
           repo: '${{ github.repository }}'
           version: "tags/${{ env.MAC_MAYA_TAG }}"
           file: "VERSION"
-          target: "${{ env.MAC_MAYA_BUILD_DIR }}/VERSION"
+          target: "VERSION"
 
       # Generate installer
       - name: Fetch Release
@@ -176,7 +176,7 @@ jobs:
       - name: Create Installer - macOS Installer Builder
         run: |
           chmod -R 777 ./builders/
-          VERSION=$(cat "${{ env.MAC_MAYA_BUILD_DIR }}/VERSION")
+          VERSION=$(cat "VERSION")
           ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh \
             "UNOMi Cinema 4D Plugin" "$VERSION" "MAYA" "false" "${{ env.MAC_MAYA_INSTALLER }}"
 
