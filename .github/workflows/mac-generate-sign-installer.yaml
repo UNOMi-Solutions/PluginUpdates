@@ -16,7 +16,7 @@ concurrency:
   # Anything with the same group name will be cancelled if a new one is triggered.
   # In this case, it's either branch or tag name (depending on the trigger).
   # So the same trigger may have win & mac jobs running at the same time, but not multiples of each.
-  group: ${{ github.ref }}-MAC
+  group: group_mac
   cancel-in-progress: true
 
 env:
