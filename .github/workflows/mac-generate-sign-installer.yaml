@@ -42,7 +42,7 @@ jobs:
         id: get_release_c4d
         run: |
           URL="https://github.com/${{ github.repository }}/releases/download/${{ env.MAC_C4D_TAG }}/${{ env.MAC_C4D_INSTALLER }}"
-          if curl -s -I $URL | grep -q "302 Found"; then
+          if curl -s -I $URL | grep -q "HTTP/2 302"; then
             echo "installer=true" >> $GITHUB_OUTPUT
           else
             echo "installer=false" >> $GITHUB_OUTPUT
@@ -52,7 +52,7 @@ jobs:
         id: get_release_maya
         run: |
           URL="https://github.com/${{ github.repository }}/releases/download/${{ env.MAC_MAYA_TAG }}/${{ env.MAC_MAYA_INSTALLER }}"
-          if curl -s -I $URL | grep -q "302 Found"; then
+          if curl -s -I $URL | grep -q "HTTP/2 302"; then
             echo "installer=true" >> $GITHUB_OUTPUT
           else
             echo "installer=false" >> $GITHUB_OUTPUT
