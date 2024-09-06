@@ -13,7 +13,10 @@ on:
       - action
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Anything with the same group name will be cancelled if a new one is triggered.
+  # In this case, it's either branch or tag name (depending on the trigger).
+  # So the same trigger may have win & mac jobs running at the same time, but not multiples of each.
+  group: group_mac
   cancel-in-progress: true
 
 env:
@@ -39,7 +42,7 @@ jobs:
         id: get_release_c4d
         run: |
           URL="https://github.com/${{ github.repository }}/releases/download/${{ env.MAC_C4D_TAG }}/${{ env.MAC_C4D_INSTALLER }}"
-          if curl -s -I $URL | grep -q "302 Found"; then
+          if curl -s -I $URL | grep -q "HTTP/2 302"; then
             echo "installer=true" >> $GITHUB_OUTPUT
           else
             echo "installer=false" >> $GITHUB_OUTPUT
@@ -49,7 +52,7 @@ jobs:
         id: get_release_maya
         run: |
           URL="https://github.com/${{ github.repository }}/releases/download/${{ env.MAC_MAYA_TAG }}/${{ env.MAC_MAYA_INSTALLER }}"
-          if curl -s -I $URL | grep -q "302 Found"; then
+          if curl -s -I $URL | grep -q "HTTP/2 302"; then
             echo "installer=true" >> $GITHUB_OUTPUT
           else
             echo "installer=false" >> $GITHUB_OUTPUT
@@ -78,7 +81,7 @@ jobs:
           repo: '${{ github.repository }}'
           version: "tags/${{ env.MAC_C4D_TAG }}"
           file: "VERSION"
-          target: "${{ env.MAC_C4D_BUILD_DIR }}/VERSION"
+          target: "VERSION"
 
       # Generate installer
       - name: Fetch Release
@@ -95,7 +98,7 @@ jobs:
       - name: Create Installer - macOS Installer Builder
         run: |
           chmod -R 777 ./builders/
-          VERSION=$(cat "${{ env.MAC_C4D_BUILD_DIR }}/VERSION")
+          VERSION=$(cat "VERSION")
           ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh \
             "UNOMi Cinema 4D Plugin" "$VERSION" "C4D" "false" "${{ env.MAC_C4D_INSTALLER }}"
 
@@ -159,7 +162,7 @@ jobs:
           repo: '${{ github.repository }}'
           version: "tags/${{ env.MAC_MAYA_TAG }}"
           file: "VERSION"
-          target: "${{ env.MAC_MAYA_BUILD_DIR }}/VERSION"
+          target: "VERSION"
 
       # Generate installer
       - name: Fetch Release
@@ -176,7 +179,7 @@ jobs:
       - name: Create Installer - macOS Installer Builder
         run: |
           chmod -R 777 ./builders/
-          VERSION=$(cat "${{ env.MAC_MAYA_BUILD_DIR }}/VERSION")
+          VERSION=$(cat "VERSION")
           ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh \
             "UNOMi Cinema 4D Plugin" "$VERSION" "MAYA" "false" "${{ env.MAC_MAYA_INSTALLER }}"
 

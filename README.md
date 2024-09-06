@@ -42,11 +42,16 @@ Access to the main DigiCert is limited to just Obi, but the DigiCert One is acce
 ### macOS
 Apps in macOS requries these steps: sign & notarize.
 
-- Signing requires the relevant certs installed on the system. In GitHub action, this is obtained through their API, requiring cert installer with its password. At the time of writing, it wasn't expired.
+- Signing requires the relevant certs installed on the system. In GitHub action, this is obtained through their API, requiring cert installer with its password.
 
 - Notarization process can be done using the notarytool. More information is [Xcode Docs](https://keith.github.io/xcode-man-pages/notarytool.1.html#AUTHENTICATION_OPTIONS). In short, our process uses App Store Connect API Keys:
 
     > Developer ID team administrators can create App Store Connect API keys for the developers on their team by logging into https://appstoreconnect.apple.com/access/api and selecting the "Keys" tab. For security purposes, the private key can only be downloaded once.
+
+At the time of writing, no Apple-related certs or secrets need to be routinely changed. Owner only needed to check:
+
+- [Apple Developer](https://developer.apple.com/support/renewal/) status to ensure their membership is still up-to-date.
+- [App Store Connect](https://appstoreconnect.apple.com/) account to ensure they have accepted to any new agreements (it pops-up on homescreen).
     
 ## Conventions:
 
