@@ -1,13 +1,13 @@
 #!/bin/bash
 
 #Parameters
-PRODUCT_HOME=__PRODUCT_HOME__
+PRODUCT_HOME=/__ROOT_DIR__
 
 echo "Post installation process started"
 
 echo "Change permissions in product home"
 cd ${PRODUCT_HOME}
-chmod -R 755 .
+chmod -R 777 .
 [ -d /usr/local/bin ] || mkdir /usr/local/bin
 
 echo "Post installation process finished"
