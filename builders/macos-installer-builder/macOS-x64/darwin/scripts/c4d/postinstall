@@ -31,11 +31,12 @@ do
     echo "Creating directory ${full_dir}"
     mkdir -p "${full_dir}"
     cp -R "${PRODUCT_HOME}/${PLUGIN_DIR}/." "${full_dir}"
+    sudo chmod -R 777 "${full_dir}"
 done
 
 echo "Change permissions in product home"
 cd ${PRODUCT_HOME}
-chmod -R 755 .
+sudo chmod -R 777 .
 [ -d /usr/local/bin ] || mkdir /usr/local/bin
 
 echo "Post installation process finished"
