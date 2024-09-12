@@ -7,7 +7,7 @@ on:
     types: [trigger-event]
   # Release trigger
   release:
-    types: [published]
+    types: [released]
   push:
     branches:
       - action
