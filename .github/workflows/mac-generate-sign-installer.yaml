@@ -181,7 +181,7 @@ jobs:
           chmod -R 777 ./builders/
           VERSION=$(cat "VERSION")
           ./builders/macos-installer-builder/macOS-x64/build-macos-x64.sh \
-            "UNOMi Cinema 4D Plugin" "$VERSION" "MAYA" "false" "${{ env.MAC_MAYA_INSTALLER }}"
+            "UNOMi Maya Plugin" "$VERSION" "MAYA" "false" "${{ env.MAC_MAYA_INSTALLER }}"
 
       - name: Sign and Notarize Installer
         id: sign_notarize
